@@ -1,0 +1,19 @@
+#!/bin/sh
+# Verrou local — LE gate bloquant de ce dépôt : la protection de branche
+# GitHub n'est pas appliquée sur un dépôt privé du plan actuel (constat du
+# 12/08/2026 sur jarvis). Ici, un état invalide ne se commite pas, et un
+# test rouge non plus.
+# Activation (une fois par clone) : git config core.hooksPath .githooks
+cd "$(git rev-parse --show-toplevel)" || exit 1
+node scripts/valider.mjs || exit 1
+# Zone de suppressions (VERROU-AGENT-01) : ce qui a été retiré
+# intentionnellement ne revient pas par accident. Le vérificateur vit au
+# poste ; absent (autre machine), on AVERTIT bruyamment sans bloquer.
+VERIF_SUPPRIMES="$HOME/.claude/outils/verif-supprimes/verifier.mjs"
+if [ -f "$VERIF_SUPPRIMES" ]; then
+  node "$VERIF_SUPPRIMES" || exit 1
+else
+  echo "⚠️  vérificateur de suppressions absent ($VERIF_SUPPRIMES) — contrôle NON joué."
+fi
+
+exec node --test

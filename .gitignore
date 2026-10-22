@@ -1,0 +1,22 @@
+# Données — JAMAIS dans le dépôt (ADR-0002). La base vit sur le VPS, hors git.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+sauvegardes/
+
+# Secrets et environnement local
+*.env
+.env*
+.secrets/
+
+# Câblage MCP du poste (URL interne du cerveau) — jamais versionné
+.mcp.json
+
+# Système
+.DS_Store
+
+# Node (aucune dépendance attendue ; ceinture et bretelles)
+node_modules/

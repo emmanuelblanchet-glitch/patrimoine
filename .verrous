@@ -1,0 +1,18 @@
+# patrimoine — fichiers qui ARMENT un verrou (VERROU-AGENT-01)
+#
+# Lus par le hook PreToolUse du poste : leur édition en session Claude est
+# refusée, par Edit comme par Bash. Corriger ce que le verrou reproche,
+# jamais affaiblir le verrou. Pour modifier l'un d'eux : à la main, hors
+# session.
+#
+# La protection de branche GitHub n'est pas appliquée sur les dépôts privés
+# du plan actuel (constat du 12/08/2026 sur jarvis : check rouge, merge
+# resté possible). Le pre-commit local est donc LE gate bloquant.
+#
+# Un « / » final protège toute l'arborescence. Ce fichier se protège
+# lui-même sans se déclarer.
+
+.githooks/                      # LE gate bloquant : valider.mjs + node --test
+scripts/valider.mjs             # le validateur d'état : aucune donnée ni secret suivi, zéro dépendance
+lib/base.mjs                    # le garde-fou anti-prod des tests (chemin hors dossier temporaire refusé)
+.github/workflows/tests.yml     # le signal visible sur les PR

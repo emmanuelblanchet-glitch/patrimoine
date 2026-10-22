@@ -1,0 +1,22 @@
+# patrimoine — zone de suppressions (VERROU-AGENT-01)
+#
+# Ce qui a été retiré INTENTIONNELLEMENT et qu'on risque de recréer.
+#
+# AUCUNE ENTRÉE AUJOURD'HUI : le dépôt naît (22/10/2026). Le fichier existe
+# quand même dès maintenant : un registre absent ne reçoit jamais sa
+# première entrée, parce que personne ne pense à le créer le jour où il en
+# aurait besoin.
+#
+# Critère d'entrée, deux conditions :
+#   1. on risque de le recréer par inadvertance ;
+#   2. RIEN D'AUTRE ne le garde déjà.
+#
+# Format :  nature: cible | pourquoi retiré | remplacé par | rouvrir si
+#
+#   fichier:  chemin relatif à la racine — sa réapparition fait échouer le
+#             hook pre-commit.
+#   concept:  une règle, une option, un comportement. Aucune machine ne peut
+#             le vérifier ; l'entrée est LUE, pas gardée.
+#
+# Vérificateur partagé du poste :
+#   node ~/.claude/outils/verif-supprimes/verifier.mjs
