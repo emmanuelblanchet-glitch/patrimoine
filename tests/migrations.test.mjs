@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { appliquerMigrations, versionDeLaBase, VERSION_CONNUE, MIGRATIONS } from '../lib/schema.mjs';
 import { baseJetable } from './aide.mjs';
 
-const TABLES = ['actif', 'enveloppe', 'migration', 'passif', 'profil', 'transactions', 'valorisation'];
+const TABLES = ['actif', 'allocation_cible', 'enveloppe', 'explication', 'migration', 'objectif', 'passif', 'profil', 'transactions', 'valorisation'];
 
 function tables(base) {
   return base

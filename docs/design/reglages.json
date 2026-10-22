@@ -1,0 +1,20 @@
+{
+  "atelier": "patrimoine-v1",
+  "retenu_le": "2026-10-23",
+  "par": "Emmanuel, dans l'atelier de design (préréglage Ardoise)",
+  "teinte": 215,
+  "sat": 18,
+  "nsat": 10,
+  "affichage": "\"Inter Tight\", system-ui, sans-serif",
+  "texte": "\"Instrument Sans\", system-ui, sans-serif",
+  "poids": 500,
+  "taille": 15,
+  "interligne": 1.6,
+  "aeration": 1,
+  "largeur": 900,
+  "rayon": 8,
+  "trait": 1,
+  "relief": 1,
+  "fond": 1,
+  "theme": "clair"
+}

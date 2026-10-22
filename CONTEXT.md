@@ -52,13 +52,45 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Cash-flow d'un bien** : loyers − charges − crédit − impôt estimé, par
   mois.
 
+## La poche financière (lot 1)
+
+- **Poche** : l'ensemble des lignes financières (hors immobilier, hors
+  parts de société), ce que l'outil pilote.
+- **Ligne** : un actif de la poche, qui porte une **classe** :
+  `actions_monde`, `sans_risque`, ou `mixte` avec sa **part actions** (le
+  PEE). Un actif financier sans classe ne compte pas dans la poche.
+- **Point de départ** : les six questions (de côté et matelas, par mois,
+  PEE et sa part actions, horizon, perte maximale, immobilier net estimé).
+  Une seule ligne en base (`objectif`), modifiable.
+- **Amorçage** : à la première réponse, l'outil crée les lignes évidentes
+  sans doublon (livret de réserve, PEE, PEA et assurance-vie si déjà
+  ouverts), valorisées « point de départ ».
+- **Exposition** : la poche vue par classe, après éclatement des lignes
+  mixtes.
+- **Destination** d'une classe : la ligne qui reçoit son versement (PEA
+  pour les actions ; livret tant qu'il est sous le matelas, sinon
+  assurance-vie), ou l'**enveloppe à ouvrir**.
+- **Versement du mois** : le montant du point de départ, réparti par la
+  règle (option A). **Rattrapage** : tout à la classe la plus en retard ;
+  **prorata** : quand tout est dans la bande.
+- **Charge utile** : ce qui part vers Claude, et rien d'autre
+  (`CLES_CHARGE_UTILE`). **Empreinte** : son hachage, clé du cache.
+- **Explication** (le cadrage dit aussi « argumentation ») : le texte qui
+  met en mots la décision des règles ; rédigé par Claude, ou de repli.
+- **Texte de repli** : l'explication écrite par gabarit depuis les mêmes
+  chiffres, quand Claude n'a pas (encore) répondu.
+- **Recul** : après un appel en échec, dix minutes sans nouvel essai.
+- **Part financière** : poche ÷ (poche + immobilier net saisi).
+  **Trajectoire** : son estimation à épargne et rendement constants.
+
 ## Les objectifs et l'allocation
 
 - **Objectif** : une cible chiffrée et datée, rattachée à une poche. La
   cible de rendement de la poche financière (A5) s'affiche à côté du
   réalisé et de la bande réaliste, sans jamais pousser au levier.
-- **Plancher de perte** : la perte globale maximale tolérée sur la poche
-  financière (D3 : −30 %). Il déclenche les alertes et borne la projection.
+- **Plancher de perte** (« perte maximale » à l'écran, `perteMaxPb` dans
+  le code) : la perte globale maximale tolérée sur la poche financière
+  (D3 : −30 %). Il déclenche les alertes et borne la projection.
 - **Allocation cible** : poids cible par classe d'actifs, avec sa **bande de
   tolérance** (règle 5/25).
 - **Rééquilibrage par les flux** : remettre dans la bande avec les
