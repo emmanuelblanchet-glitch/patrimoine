@@ -220,7 +220,7 @@ ${blocAvertissements('À savoir', avertissements)}
   ${champ('immobilier_date', 'Date de cette estimation', v, { type: 'date', requis: true })}
   ${champ('immobilier_source', 'D\'où vient-elle ?', v, { requis: true, aide: 'agence, annonces, à la louche…' })}
   ${champ('rendement', 'Rendement annuel estimé de la poche (%)', v, { aide: 'sert à la trajectoire seulement ; 5 par défaut, c\'est une estimation' })}
-  ${objectif ? '' : `<div><span class="question">Ce que tu as déjà ouvert</span>${case_('a_pea', 'un PEA', v)}${case_('a_av', 'une assurance-vie', v)}<small>Coche seulement ce qui existe ; l'outil te dira quoi ouvrir sinon.</small></div>`}
+  ${types.has('pea') && types.has('av') ? '' : `<div><span class="question">Ce que tu as déjà ouvert</span>${types.has('pea') ? '' : case_('a_pea', 'un PEA', v)}${types.has('av') ? '' : case_('a_av', 'une assurance-vie', v)}<small>Coche seulement ce qui existe ; l'outil te dira quoi ouvrir sinon. Tu peux revenir cocher ici le jour où tu l'ouvres.</small></div>`}
   <button>Enregistrer</button>
 </form>`);
 }
