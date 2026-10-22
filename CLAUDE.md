@@ -94,7 +94,8 @@ PATRIMOINE_DB=~/Patrimoine/patrimoine.db npm run serveur   # http://127.0.0.1:87
 `PATRIMOINE_PORT` change le port. La base est créée et migrée au premier
 démarrage ; un chemin situé dans le dépôt est refusé. `ANTHROPIC_API_KEY`
 dans l'environnement du serveur active l'argumentation rédigée par Claude ;
-sans elle, texte de repli.
+sans elle, texte de repli. Une clé créée au niveau de l'organisation (non
+rattachée à un espace de travail) exige en plus `ANTHROPIC_WORKSPACE_ID`.
 
 ## Routine
 

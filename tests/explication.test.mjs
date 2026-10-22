@@ -50,6 +50,16 @@ test('S-L1-4 — le texte de repli dit la cible, l\'écart, la répartition et l
   assert.match(vide, /La poche est vide/);
 });
 
+test('S-L1-4 — quand l\'enveloppe visée est à ouvrir, le repli le dit dans la répartition', () => {
+  const expo = exposition([{ classe: 'sans_risque', valeurCentimes: 1_000_00 }]);
+  const c = chargeUtile({
+    ecarts: ecarts(expo), versementCentimes: 500_00, repartition: repartirVersement(500_00, expo),
+    objectif: { horizonAnnees: 10, perteMaxPb: 3000 },
+    destinations: { actions_monde: { aOuvrir: 'pea', enveloppeType: 'pea' }, sans_risque: { enveloppeType: 'livret', ligne: {} } },
+  });
+  assert.match(texteDeRepli(c).replace(/[\u202f\u00a0]/g, ' '), /500 € sur actions monde \(le PEA, à ouvrir\)/);
+});
+
 test('les messages pour Claude portent la consigne (ne décide rien) et la charge utile', () => {
   const { system, user } = messagesPourClaude(chargeExemple());
   assert.match(system, /ne décides rien/);
@@ -91,6 +101,13 @@ test('appel à Claude — requête conforme : modèle, en-têtes, effort bas, re
   assert.match(corps.messages[0].content, /"horizonAnnees":10/);
   assert.ok(!corps.messages[0].content.includes('NE DOIT PAS PARTIR'));
   assert.ok(!('tools' in corps) && !('tool_choice' in corps), 'S10 : aucun outil, une lecture de texte');
+  assert.equal(options.headers['anthropic-workspace-id'], undefined, 'sans espace de travail, pas d\'en-tête');
+});
+
+test('appel à Claude — une clé d\'organisation envoie l\'en-tête de l\'espace de travail', async () => {
+  const { f, appels } = fauxFetch(json(200, { model: 'm', stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] }));
+  await redigerExplication(chargeExemple(), { cle: 'x', workspaceId: 'wrkspc_test', fetchImpl: f });
+  assert.equal(appels[0].options.headers['anthropic-workspace-id'], 'wrkspc_test');
 });
 
 test('appel à Claude — erreurs distinguées : clé refusée, transitoire, autre, refus, vide, réseau', async () => {

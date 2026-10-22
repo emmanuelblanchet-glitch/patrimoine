@@ -4,6 +4,9 @@
 //
 // La clé vient de l'environnement du serveur (`ANTHROPIC_API_KEY`), jamais
 // du dépôt. Sans clé, on rend { ok: false, raison: 'sans_cle' } sans appel.
+// Une clé créée au niveau de l'organisation (non rattachée à un espace de
+// travail) exige l'en-tête `anthropic-workspace-id` : `ANTHROPIC_WORKSPACE_ID`
+// le fournit (recette du 23/10/2026 : 400 « not scoped to a workspace »).
 
 import { messagesPourClaude } from '../lib/explication.mjs';
 
@@ -13,10 +16,10 @@ const DELAI_MS = 45_000;
 
 /**
  * @param {object} charge  la charge utile minimale (lib/explication.mjs)
- * @param {{ cle?: string, fetchImpl?: typeof fetch, modele?: string }} options
+ * @param {{ cle?: string, workspaceId?: string, fetchImpl?: typeof fetch, modele?: string }} options
  * @returns {Promise<{ ok: true, texte: string, modele: string } | { ok: false, raison: string }>}
  */
-export async function redigerExplication(charge, { cle = process.env.ANTHROPIC_API_KEY, fetchImpl = fetch, modele = MODELE } = {}) {
+export async function redigerExplication(charge, { cle = process.env.ANTHROPIC_API_KEY, workspaceId = process.env.ANTHROPIC_WORKSPACE_ID, fetchImpl = fetch, modele = MODELE } = {}) {
   if (!cle) return { ok: false, raison: 'sans_cle' };
   const { system, user } = messagesPourClaude(charge);
   const corps = {
@@ -39,6 +42,7 @@ export async function redigerExplication(charge, { cle = process.env.ANTHROPIC_A
         'x-api-key': cle,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'server-side-fallback-2026-07-01',
+        ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}),
       },
       body: JSON.stringify(corps),
       signal: AbortSignal.timeout(DELAI_MS),
