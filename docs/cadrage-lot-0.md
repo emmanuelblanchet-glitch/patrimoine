@@ -35,17 +35,23 @@ donc inversée par rapport au brief initial : bilan immobilier d'abord.
 | D4 | Node + SQLite + HTML/modules ES, zéro dépendance (ADR-0001). |
 | D5 | Clé `PATRIMOINE-01`, socle instancié par `/nouveau-projet`. |
 
-## Roadmap
+## Roadmap (recadrée le 23/10/2026)
 
-- **MVP — bilan et calendrier** : lot 0 base, saisie, bilan à quote-part ;
-  lot 1 échéanciers et calendrier des engagements ; lot 2 fiscalité à
-  paramètres datés et simulateur de sortie ; lot 3 accès iPhone et
-  sauvegarde chiffrée.
-- **V1 — poche financière et risque** : enveloppes cotées, TWR/MWR,
-  allocation cible et bandes, règles d'enveloppe, scénarios immobiliers,
-  projection à l'horizon retraite.
-- **V2 — veille et orientations** : collecte sourcée, synthèse croisée avec
-  les expositions, journal sans notation.
+L'objet de l'outil est la **poche financière à construire**, pour ne plus
+dépendre de l'immobilier. L'immobilier n'est qu'un total saisi à la main,
+qui sert à afficher la part financier / immobilier. La saisie est un
+parcours guidé en français, pas des formulaires qui exposent le modèle.
+
+- **MVP — ma poche financière** : lot 0 (livré) base, serveur local,
+  garde-fous ; lot 1 point de départ en cinq questions, allocation cible
+  simple et argumentée, page « quoi faire ce mois-ci », total immobilier ;
+  lot 2 saisie guidée des achats, cours automatiques, performance, écart à
+  la cible, règles d'enveloppe ; lot 3 iPhone, mot de passe, sauvegarde.
+- **V1 — guidage par l'actualité et risque** : veille sourcée et
+  orientations croisées avec les lignes détenues, indicateurs de risque au
+  seuil de données, projection à l'horizon retraite, détail du PEE.
+- **V2 — l'immobilier en détail, si utile** : échéanciers, calendrier des
+  engagements, cash-flow, fiscalité et simulateur de sortie.
 
 ## Seams
 

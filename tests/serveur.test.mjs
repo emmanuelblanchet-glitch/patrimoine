@@ -59,8 +59,11 @@ test('le serveur n\'écoute que sur 127.0.0.1', () => {
   assert.equal(serveur.address().address, '127.0.0.1');
 });
 
-test('GET / répond 200 avec le bilan, et les en-têtes de sécurité', async () => {
-  const r = await requete();
+test('GET / répond 200 (ma poche, invitation sans point de départ), GET /bilan le bilan complet, avec les en-têtes de sécurité', async () => {
+  const accueil = await requete();
+  assert.equal(accueil.statut, 200);
+  assert.match(accueil.corps, /Six questions suffisent/);
+  const r = await requete({ chemin: '/bilan' });
   assert.equal(r.statut, 200);
   assert.match(r.corps, /Patrimoine net/);
   assert.match(r.entetes['content-security-policy'], /default-src 'none'/);
@@ -143,14 +146,14 @@ test('parcours complet : un bien à 1/2 et son crédit donnent le bon net sur la
   assert.equal((await post('/valorisations', { cible: `actif:${actifId}`, date: '2026-10-01', valeur: '300 000', source: 'estimation test', statut: 'estimation' })).statut, 303);
   assert.equal((await post('/valorisations', { cible: `passif:${passifId}`, date: '2026-10-05', valeur: '100 000,02', source: 'relevé test', statut: 'fait' })).statut, 303);
 
-  const page = await requete({ chemin: '/?date=2026-10-22' });
+  const page = await requete({ chemin: '/bilan?date=2026-10-22' });
   assert.equal(page.statut, 200);
   // (300 000 − 100 000,02) / 2 = 99 999,99 ; Intl fr-FR sépare les milliers par une espace fine insécable.
   assert.match(page.corps.replace(/[  ]/g, ' '), /99 999,99 €/);
 });
 
 test('une date de bilan invalide répond 400', async () => {
-  assert.equal((await requete({ chemin: '/?date=2026-02-30' })).statut, 400);
+  assert.equal((await requete({ chemin: '/bilan?date=2026-02-30' })).statut, 400);
 });
 
 test('les libellés saisis sont échappés à l\'affichage', async () => {

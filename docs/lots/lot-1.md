@@ -96,6 +96,28 @@ polices (Inter Tight, Instrument Sans) en fichiers `woff2` sous
 « Réglages → données détaillées », avec le même habillage ; elles ne sont
 plus l'entrée.
 
+### Précisé au développement
+
+- Le point de départ porte **sept champs et deux cases** : la question 1 se
+  dédouble en « de côté » et « dont matelas de précaution » ; deux cases
+  disent si un PEA et une assurance-vie existent déjà. À la première
+  réponse, l'outil **amorce** les lignes sans doublon : livret de réserve
+  (valorisé à la réserve), PEE (ligne mixte, part actions saisie ou 50 %),
+  PEA et assurance-vie cochés (lignes vides). Source : « point de départ ».
+- **Destination** d'un versement : les actions vont à la ligne actions du
+  PEA (sinon à une autre ligne actions, sinon « ouvrir un PEA ») ; le sans
+  risque va au livret tant qu'il est sous le matelas, sinon au fonds euros
+  de l'assurance-vie, sinon « ouvrir une assurance-vie ».
+- L'appel à Claude est **asynchrone** : la page rend tout de suite le texte
+  de repli et lance l'appel ; la rédaction s'affiche au chargement suivant,
+  depuis le cache. Un appel en échec laisse le repli, dit la raison, et
+  réessaie au chargement suivant.
+- Les polices vivent dans `public/fonts/`, seul sous-dossier servi ; la
+  politique de sécurité du contenu ajoute `font-src 'self'`.
+- La saisie « classer une ligne » (page Lignes) couvre les actifs créés par
+  les pages détaillées ; créer un nouvel actif passe encore par la page
+  Actifs du lot 0 (un parcours guidé « ajouter une ligne » reste à faire).
+
 ## Seams testés (bloquants, jeux synthétiques)
 
 | Seam | Comportement garanti |

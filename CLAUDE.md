@@ -33,21 +33,38 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
    en mode test, tout chemin hors du dossier temporaire du système. Codé en
    dur et protégé par `.verrous`.
 8. **Montants en centimes entiers, transactions immuables**, corrections par
-   contre-écriture (modèle du cadrage, § 04).
+   contre-écriture (modèle du cadrage, § 04) — triggers en base.
+9. **Claude met en mots, il ne décide rien** (lot 1, L1-3) : les chiffres
+   viennent des règles codées ; ce qui part vers l'API est exactement la
+   liste de `CLES_CHARGE_UTILE` (ni libellés, ni immobilier détaillé, ni
+   identité — testé) ; texte mis en cache par empreinte ; sans clé, sans
+   réseau ou en erreur, un texte de repli s'affiche et la page ne dépend
+   jamais de l'appel. L'appel est en lecture seule, sans outil.
+10. **La saisie est un parcours en français**, jamais des champs du modèle
+    de données (recadrage du 23/10/2026).
 
 ## Carte
 
 - `lib/` — moteurs purs, sans accès réseau. `lib/base.mjs` ouvre la base ;
   `schema.mjs` migrations numérotées (une migration publiée ne se modifie
-  jamais) ; `referentiel.mjs` écriture/lecture validées (S6) ;
+  jamais) ; `referentiel.mjs` écriture/lecture validées (S6), versements ;
   `bilan.mjs` bilan à quote-part en fractions exactes (S2) ;
-  `fraction.mjs`, `saisie.mjs` (lecture des montants, dates, quotes-parts).
+  `allocation.mjs` cible, bandes 5/25, répartition du versement en option A
+  (S-L1-1) ; `objectif.mjs` point de départ, amorçage des lignes, classes
+  (S-L1-2) ; `poche.mjs` assemble la poche ; `explication.mjs` charge utile
+  minimale, empreinte, texte de repli (S-L1-3/4/5) ; `fraction.mjs`,
+  `saisie.mjs`.
 - `serveur/` — serveur local (Node `http`, 127.0.0.1 seulement, l'hôte
   n'est pas réglable) : `config.mjs` refuse une base dans le dépôt ;
   `application.mjs` gardes Host/Origin, routes, statiques ; `pages.mjs`
-  HTML échappé ; `formulaires.mjs` ; `demarrer.mjs` point d'entrée.
-- `public/` — seuls fichiers statiques servis (à plat, extensions
-  allowlistées).
+  HTML échappé ; `formulaires.mjs` ; `claude.mjs` le seul appel sortant
+  (API Messages, `fetch` natif, clé `ANTHROPIC_API_KEY`) ;
+  `explications.mjs` cache + appel en arrière-plan + repli ;
+  `demarrer.mjs` point d'entrée.
+- `public/` — seuls fichiers statiques servis (à plat ou dans `fonts/`,
+  extensions allowlistées). Polices embarquées : jamais chargées d'un tiers.
+- `docs/design/reglages.json` — le système de design retenu par Emmanuel
+  dans l'atelier ; `public/style.css` en dérive.
 - `scripts/valider.mjs` — validateur d'état ; `.githooks/pre-commit` = **le**
   gate bloquant (la protection de branche GitHub n'est pas appliquée sur les
   dépôts privés du plan, constat jarvis 12/08/2026).
@@ -75,7 +92,9 @@ PATRIMOINE_DB=~/Patrimoine/patrimoine.db npm run serveur   # http://127.0.0.1:87
 ```
 
 `PATRIMOINE_PORT` change le port. La base est créée et migrée au premier
-démarrage ; un chemin situé dans le dépôt est refusé.
+démarrage ; un chemin situé dans le dépôt est refusé. `ANTHROPIC_API_KEY`
+dans l'environnement du serveur active l'argumentation rédigée par Claude ;
+sans elle, texte de repli.
 
 ## Routine
 

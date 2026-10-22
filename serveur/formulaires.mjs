@@ -65,6 +65,53 @@ export function lireFormulairePassif(champs) {
   return { donnees, motifs };
 }
 
+/** Les six questions du point de départ (+ deux cases : PEA et assurance-vie déjà ouverts). */
+export function lireFormulaireDepart(champs) {
+  const { motifs, lire, texte } = lecteur(champs);
+  const pct = (nom, libelle) => {
+    const v = lire(lireTauxPb, nom, libelle);
+    return v === null ? null : v; // déjà en points de base (« 30 » → 3000)
+  };
+  const donnees = {
+    reserveCentimes: lire(lireMontantFacultatif, 'reserve', 'De côté'),
+    matelasCentimes: lire(lireMontantFacultatif, 'matelas', 'Matelas de précaution'),
+    epargneMensuelleCentimes: lire(lireMontantFacultatif, 'epargne_mensuelle', 'Par mois'),
+    peeCentimes: lire(lireMontantFacultatif, 'pee', 'PEE') ?? 0,
+    peePartActionsPb: pct('pee_part_actions', 'Part actions du PEE') ?? 5000,
+    horizonAnnees: lire(lireEntier, 'horizon', 'Horizon'),
+    perteMaxPb: pct('perte_max', 'Perte maximale'),
+    immobilierNetCentimes: lire(lireMontantFacultatif, 'immobilier', 'Immobilier net'),
+    immobilierDate: lire(lireDate, 'immobilier_date', 'Date de l\'estimation'),
+    immobilierSource: texte('immobilier_source'),
+    aPea: champs.a_pea === 'oui',
+    aAv: champs.a_av === 'oui',
+  };
+  return { donnees, motifs };
+}
+
+/** « J'ai versé X sur telle ligne, le … » (+ nouvelle valeur de la ligne, facultative). */
+export function lireFormulaireVersement(champs) {
+  const { motifs, lire, texte } = lecteur(champs);
+  const donnees = {
+    actifId: id(champs.actif_id),
+    date: lire(lireDate, 'date', 'Date'),
+    montantCentimes: lire(lireMontantFacultatif, 'montant', 'Montant'),
+    nouvelleValeurCentimes: lire(lireMontantFacultatif, 'nouvelle_valeur', 'Nouvelle valeur de la ligne'),
+    source: texte('source') ?? 'versement saisi',
+    type: champs.type === 'abondement' ? 'abondement' : 'versement',
+  };
+  return { donnees, motifs };
+}
+
+/** Classer une ligne existante : classe et, pour « mixte », part actions. */
+export function lireFormulaireClasse(champs) {
+  const { motifs, lire, texte } = lecteur(champs);
+  return {
+    donnees: { actifId: id(champs.actif_id), classe: texte('classe'), partActionsPb: lire(lireTauxPb, 'part_actions', 'Part actions') },
+    motifs,
+  };
+}
+
 /**
  * La cible arrive sous la forme « actif:12 » ou « passif:3 ». Un champ vide
  * n'est pas signalé ici : le domaine le refuse déjà (« date obligatoire »,

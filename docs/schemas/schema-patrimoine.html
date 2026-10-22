@@ -56,41 +56,42 @@
 
 <div class="page">
   <div class="eyebrow">Fiche technico-fonctionnelle · activité Patrimoine · usage personnel</div>
-  <h1>Patrimoine, bilan net à la quote-part</h1>
+  <h1>Patrimoine, ma poche financière</h1>
   <p class="sub">Ce que fait l'outil aujourd'hui, de quelles briques il est fait, et où sont ses garde-fous. Pour un lecteur qui ne connaît pas le code. Aucun chiffre personnel n'y figure : les données vivent dans la base, hors du dépôt.</p>
 
   <h2>Ce que l'utilisateur fait</h2>
   <div class="flux">
     <div class="brique">
-      <h3>Il décrit son patrimoine</h3>
-      <span class="ou">pages Enveloppes · Actifs · Crédits</span>
+      <h3>Il répond à six questions</h3>
+      <span class="ou">page Point de départ</span>
       <ul>
-        <li>une <strong>enveloppe</strong> par contenant (bien en direct, PEE, livret, parts de société…), avec sa <strong>quote-part</strong> en fraction exacte (1/2 pour une indivision)</li>
-        <li>les <strong>actifs</strong> qu'elle contient, saisis à 100 %</li>
-        <li>les <strong>crédits</strong> qui financent un actif</li>
+        <li>de côté et matelas, par mois, PEE et sa part actions, horizon, perte maximale acceptée, immobilier net estimé</li>
+        <li>l'outil <strong>amorce</strong> ses lignes : livret de réserve, PEE, PEA et assurance-vie s'ils existent</li>
+        <li>une <strong>cible</strong> naît : 60 % actions monde, 40 % sans risque</li>
       </ul>
     </div>
     <div class="fleche">→</div>
     <div class="brique">
-      <h3>Il saisit des valeurs datées</h3>
-      <span class="ou">page Valorisations</span>
+      <h3>Il lit « quoi faire ce mois-ci »</h3>
+      <span class="ou">page Ma poche</span>
       <ul>
-        <li>la valeur d'un actif, ou le <strong>capital restant dû</strong> d'un crédit, copié du relevé</li>
-        <li>toujours avec une <strong>source</strong> et un <strong>statut</strong> : fait ou estimation</li>
-        <li>sans source ni statut, la saisie est refusée avec le motif</li>
+        <li>le versement du mois, réparti vers la ligne la plus en retard (ou au prorata si tout est dans la bande) ; jamais de vente</li>
+        <li>une <strong>argumentation</strong> rédigée par Claude depuis les chiffres des règles, ou un texte de repli ; toujours « aide à la décision »</li>
+        <li>l'allocation contre la cible, les lignes avec source et date, la <strong>part financière</strong> face à l'immobilier et sa trajectoire estimée</li>
       </ul>
     </div>
     <div class="fleche">→</div>
     <div class="brique">
-      <h3>Il lit son bilan</h3>
-      <span class="ou">page Bilan, à une date au choix</span>
+      <h3>Il dit ce qu'il a versé</h3>
+      <span class="ou">pages Versement · Lignes</span>
       <ul>
-        <li>valeur − dette = <strong>net</strong>, par ligne, par enveloppe, global, à sa quote-part</li>
-        <li>chaque ligne porte la date, l'âge et la source de sa valeur</li>
-        <li>un actif sans valeur est signalé et exclu ; une dette n'est jamais masquée ; le bilan se dit <strong>incomplet</strong></li>
+        <li>« j'ai versé X sur telle ligne, le … », avec la nouvelle valeur de la ligne s'il la connaît</li>
+        <li>chaque versement est une transaction <strong>immuable</strong> ; chaque valeur porte sa source et son statut</li>
+        <li>il classe ses lignes : actions monde, sans risque, ou mixte avec sa part actions</li>
       </ul>
     </div>
   </div>
+  <p class="sub" style="margin-top:12px">Sous « Réglages → données détaillées » : le bilan complet à la quote-part (immobilier compris), les enveloppes, actifs, crédits et valorisations, qui nourrissent le même moteur.</p>
 
   <h2>De quoi c'est fait</h2>
   <div class="flux">
@@ -117,7 +118,7 @@
       <h3>Base SQLite</h3>
       <span class="ou"><code>PATRIMOINE_DB</code>, hors du dépôt</span>
       <ul>
-        <li>tables : profil, enveloppe, actif, passif, valorisation, transactions</li>
+        <li>tables : profil, objectif, allocation cible, enveloppe, actif (avec sa classe), passif, valorisation, transactions, explication (cache)</li>
         <li>migrations numérotées, rejouables, figées une fois publiées</li>
         <li>contraintes en base : source et statut obligatoires, transactions immuables</li>
       </ul>
@@ -128,9 +129,18 @@
       <h3>Moteurs purs</h3>
       <span class="ou"><code>lib/</code>, sans accès réseau</span>
       <ul>
+        <li><code>allocation.mjs</code> : cible, bandes 5/25, répartition du versement</li>
+        <li><code>poche.mjs</code>, <code>objectif.mjs</code>, <code>explication.mjs</code> (charge utile minimale, empreinte, repli)</li>
         <li><code>bilan.mjs</code> : fractions exactes, un seul arrondi au centime</li>
-        <li><code>referentiel.mjs</code> : validation puis écriture, lecture de l'état</li>
-        <li><code>fraction.mjs</code>, <code>saisie.mjs</code>, <code>schema.mjs</code></li>
+      </ul>
+    </div>
+    <div class="brique">
+      <h3>Claude, en mots seulement</h3>
+      <span class="ou"><code>serveur/claude.mjs</code>, API Messages</span>
+      <ul>
+        <li>reçoit la cible, les poids, le versement et sa répartition, l'horizon, le plancher : rien d'autre</li>
+        <li>appel en arrière-plan ; texte mis en cache par empreinte de ses entrées</li>
+        <li>sans clé, sans réseau ou en erreur : texte de repli, la page ne l'attend jamais</li>
       </ul>
     </div>
     <div class="brique">
@@ -145,10 +155,10 @@
       <h3>Pas encore</h3>
       <span class="ou">lots suivants</span>
       <ul>
-        <li>échéanciers et calendrier des engagements</li>
-        <li>loyers, charges, cash-flow</li>
-        <li>fiscalité et simulateur de sortie</li>
+        <li>cours automatiques, performance, écart à la cible calculé des cours</li>
+        <li>parcours guidé « ajouter une ligne » (ETF par nom ou ISIN)</li>
         <li>accès iPhone, mot de passe, VPS, sauvegarde chiffrée</li>
+        <li>orientations d'actualité ; échéanciers et fiscalité de l'immobilier, plus tard</li>
       </ul>
     </div>
   </div>
@@ -185,13 +195,23 @@
         <li>tout texte saisi est échappé à l'affichage</li>
       </ul>
     </div>
+    <div class="brique garde">
+      <h3>Claude met en mots, il ne décide rien</h3>
+      <ul>
+        <li>les chiffres viennent des règles codées et testées ; le modèle rédige, marqué « aide à la décision »</li>
+        <li>la charge utile est une liste fermée de clés, vérifiée par un test : ni libellés, ni immobilier détaillé, ni identité</li>
+        <li>appel en lecture seule, sans outil ; clé dans l'environnement du serveur, jamais dans le dépôt</li>
+      </ul>
+    </div>
   </div>
 
   <h2>Points d'attention</h2>
   <div class="tablewrap"><table>
     <tr><th>État</th><th>Conséquence</th></tr>
     <tr><td>Pas d'authentification</td><td>Le serveur n'est joignable que depuis le Mac ; toute personne devant le Mac peut lire et écrire. Mot de passe et réseau privé au lot 3.</td></tr>
-    <tr><td>Capital restant dû saisi à la main</td><td>Il vieillit entre deux relevés ; l'âge affiché le rappelle. Le calcul depuis l'échéancier vient au lot 1.</td></tr>
+    <tr><td>Valeurs saisies à la main</td><td>La valeur d'une ligne vieillit entre deux saisies ; l'âge affiché le rappelle. Les cours automatiques viennent au lot 2.</td></tr>
+    <tr><td>Une cible unique, 60 / 40</td><td>La cible est celle du point de départ ; elle ne se modifie pas encore à l'écran.</td></tr>
+    <tr><td>L'argumentation coûte un appel par situation</td><td>Chaque changement de la poche déclenche une rédaction ; même situation, même texte, sans nouvel appel.</td></tr>
     <tr><td>Pas de modification ni de suppression</td><td>Une saisie fausse se corrige par une nouvelle valorisation à la même date (la dernière saisie fait foi) ; les transactions se corrigent par contre-écriture.</td></tr>
     <tr><td>Le PEE est une ligne globale</td><td>Pas de détail par fonds ni d'import de relevé avant la V1.</td></tr>
     <tr><td>Une sauvegarde est un fichier à part</td><td>Rien ne sauvegarde la base automatiquement avant le lot 3.</td></tr>
