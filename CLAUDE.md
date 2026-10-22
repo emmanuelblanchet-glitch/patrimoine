@@ -41,7 +41,7 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
    réseau ou en erreur, un texte de repli s'affiche et la page ne dépend
    jamais de l'appel. L'appel est en lecture seule, sans outil.
 10. **La saisie est un parcours en français**, jamais des champs du modèle
-    de données (recadrage du 23/10/2026).
+    de données (recadrage du 22/10/2026).
 
 ## Carte
 

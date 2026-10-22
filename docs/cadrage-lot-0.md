@@ -35,7 +35,7 @@ donc inversée par rapport au brief initial : bilan immobilier d'abord.
 | D4 | Node + SQLite + HTML/modules ES, zéro dépendance (ADR-0001). |
 | D5 | Clé `PATRIMOINE-01`, socle instancié par `/nouveau-projet`. |
 
-## Roadmap (recadrée le 23/10/2026)
+## Roadmap (recadrée le 22/10/2026)
 
 L'objet de l'outil est la **poche financière à construire**, pour ne plus
 dépendre de l'immobilier. L'immobilier n'est qu'un total saisi à la main,
