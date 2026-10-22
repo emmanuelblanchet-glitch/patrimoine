@@ -71,6 +71,9 @@ Sortie : par enveloppe, par bien et global :
   `estimation` dès qu'un composant l'est ;
 - un actif **sans valorisation** est listé « non valorisé » et exclu du
   total, avec un avertissement — jamais compté à zéro en silence ;
+- *précisé au développement* : la **dette** d'un bien non valorisé reste
+  comptée (une dette ne se masque jamais) et le bilan est marqué
+  **incomplet** ; même marque pour un crédit sans capital restant dû saisi ;
 - âge de chaque valorisation en jours, pour signaler ce qui date.
 
 Arithmétique en entiers ; un seul arrondi, à l'affichage.
@@ -85,7 +88,11 @@ Arithmétique en entiers ; un seul arrondi, à l'affichage.
   CSS inline, lisible sur un petit écran (le lot 3 ne redessine pas).
 - Écritures par formulaire `POST` ; une écriture invalide répond 400 avec le
   motif ; une requête dont l'en-tête `Host` n'est pas l'adresse locale est
-  refusée (403) — garde contre une page tierce qui posterait vers le serveur.
+  refusée (403) — garde contre le rebond DNS.
+- *précisé au développement* : le contrôle de `Host` ne suffit pas contre
+  une page tierce qui posterait un formulaire vers `127.0.0.1` (le
+  navigateur envoie alors le bon `Host`). Toute écriture exige donc aussi
+  un en-tête `Origin` égal à `http://<Host>` (403 sinon).
 - Fichiers statiques servis depuis `public/` seulement, extensions
   allowlistées ; tout autre chemin répond 404.
 - Pas d'authentification au lot 0 : le serveur n'est joignable que depuis
@@ -107,7 +114,7 @@ avec leur source.
 | S2 quote-part | Un bien à 1/2 divise valeur et dette ensemble ; le net d'une enveloppe à 1/3 est exactement le tiers du net à 100 %. |
 | S6 source obligatoire | Une valorisation sans source ou sans statut est refusée par le référentiel avec le motif, et par la base si on la contourne. |
 | Migrations | Schéma appliqué sur base vide ; rejeu sans effet ; version inconnue refusée. |
-| Fumée serveur | N'écoute que sur 127.0.0.1 ; `GET /` répond 200 avec le bilan ; un chemin hors `public/` répond 404 ; un `POST` invalide répond 400 avec le motif ; un `Host` étranger répond 403 ; un chemin de base dans le dépôt empêche le démarrage. |
+| Fumée serveur | N'écoute que sur 127.0.0.1 ; `GET /` répond 200 avec le bilan ; un chemin hors `public/` répond 404 ; un `POST` invalide répond 400 avec le motif ; un `Host` étranger répond 403 ; un `POST` sans `Origin` local répond 403 ; un chemin de base dans le dépôt empêche le démarrage. |
 | Bilan | Sur un jeu synthétique : net global, propagation du statut `estimation`, actif non valorisé signalé et exclu, âge des valorisations. |
 
 Plus les tests existants du socle (garde-fou anti-prod, validateur).
