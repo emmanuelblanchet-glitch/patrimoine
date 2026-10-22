@@ -7,7 +7,7 @@
 
 import { messagesPourClaude } from '../lib/explication.mjs';
 
-export const MODELE = 'claude-opus-5-5';
+const MODELE = 'claude-opus-5-5';
 const URL_MESSAGES = 'https://api.anthropic.com/v1/messages';
 const DELAI_MS = 45_000;
 

@@ -10,7 +10,7 @@ function chargeExemple({ versement = 500_00, lignes = [{ classe: 'actions_monde'
   const expo = exposition(lignes);
   const e = ecarts(expo);
   return chargeUtile({
-    ecarts: e, expo, partFinancierePb: 1100, versementCentimes: versement,
+    ecarts: e, versementCentimes: versement,
     repartition: repartirVersement(versement, expo),
     objectif: { horizonAnnees: 10, perteMaxPb: 3000, immobilierSource: 'NE DOIT PAS PARTIR', immobilierNetCentimes: 999 },
     destinations: { actions_monde: { enveloppeType: 'pea', ligne: { libelle: 'NE DOIT PAS PARTIR' } }, sans_risque: { aOuvrir: 'av', enveloppeType: 'av' } },
@@ -24,6 +24,7 @@ test('S-L1-3 — la charge utile ne contient que les clés prévues, et aucun li
   assert.ok(!texte.includes('NE DOIT PAS PARTIR'));
   assert.ok(!texte.includes('999'));
   assert.ok(!texte.includes('immobilier'));
+  assert.ok(!('pocheCentimes' in c) && !('partFinancierePb' in c), 'ni valeur de poche ni part financière : on en déduirait l\'immobilier');
   assert.deepEqual(c.aOuvrir, ['av']);
   assert.equal(c.repartition[0].enveloppe, 'pea');
 });
@@ -38,12 +39,13 @@ test('S-L1-5 — mêmes entrées, même empreinte ; une entrée changée, une au
 });
 
 test('S-L1-4 — le texte de repli dit la cible, l\'écart, la répartition et l\'enveloppe à ouvrir, sans réseau', () => {
-  const t = texteDeRepli(chargeExemple());
+  const t = texteDeRepli(chargeExemple()).replace(/[\u202f\u00a0]/g, ' ');
   assert.match(t, /60 % actions monde et 40 % sans risque/);
   assert.match(t, /actions monde pèse 50 %/);
   assert.match(t, /tout le versement va à la ligne la plus en retard : 500 € sur actions monde \(le PEA\)/);
   assert.match(t, /À ouvrir.*l'assurance-vie/);
   assert.match(t, /Rien à vendre/);
+  assert.match(t, /Aide à la décision, pas un conseil réglementé\.$/);
   const vide = texteDeRepli(chargeExemple({ lignes: [] }));
   assert.match(vide, /La poche est vide/);
 });
@@ -88,6 +90,7 @@ test('appel à Claude — requête conforme : modèle, en-têtes, effort bas, re
   assert.equal(corps.fallbacks, 'default');
   assert.match(corps.messages[0].content, /"horizonAnnees":10/);
   assert.ok(!corps.messages[0].content.includes('NE DOIT PAS PARTIR'));
+  assert.ok(!('tools' in corps) && !('tool_choice' in corps), 'S10 : aucun outil, une lecture de texte');
 });
 
 test('appel à Claude — erreurs distinguées : clé refusée, transitoire, autre, refus, vide, réseau', async () => {

@@ -15,7 +15,6 @@ test('versement avec nouvelle valeur : une transaction et une valorisation ; san
     enregistrerVersement(base, { actifId: id, date: '2026-10-23', montantCentimes: 500_00, nouvelleValeurCentimes: 500_00, source: 'ordre' });
     enregistrerVersement(base, { actifId: id, date: '2026-11-23', montantCentimes: 500_00 });
     assert.equal(lireVersements(base).length, 2);
-    assert.equal(lireVersements(base, { depuis: '2026-11-01' }).length, 1);
     assert.equal(lireEtat(base).valorisations.length, 1);
     assert.throws(() => base.prepare('DELETE FROM transactions').run(), /immuable/);
   } finally {

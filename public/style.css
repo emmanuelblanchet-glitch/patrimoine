@@ -27,23 +27,6 @@
   --esp-1: 6px; --esp-2: 12px; --esp-3: 20px; --esp-4: 32px; --esp-5: 52px;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fond: hsl(var(--teinte) 10% 9%);
-    --surface: hsl(var(--teinte) 10% 12%);
-    --encre: hsl(var(--teinte) 10% 90%);
-    --encre-douce: hsl(var(--teinte) 8% 62%);
-    --filet: hsl(var(--teinte) 10% 20%);
-    --filet-fort: hsl(var(--teinte) 10% 30%);
-    --accent: hsl(var(--teinte) 28% 68%);
-    --accent-fond: hsl(var(--teinte) 18% 18%);
-    --bon: hsl(150 30% 66%); --bon-fond: hsl(150 24% 16%);
-    --attention: hsl(36 50% 66%); --attention-fond: hsl(36 36% 16%);
-    --manque: hsl(8 50% 70%); --manque-fond: hsl(8 30% 16%);
-    --ombre: 0 1px 2px hsl(0 0% 0% / .3), 0 8px 24px -12px hsl(0 0% 0% / .5);
-    color-scheme: dark;
-  }
-}
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--fond); color: var(--encre); font: 15px/1.6 var(--texte); -webkit-font-smoothing: antialiased; }
@@ -87,7 +70,6 @@ small { color: var(--encre-douce); }
 .tag.opinion { color: var(--accent); background: var(--accent-fond); }
 .tag.fait { color: var(--bon); background: var(--bon-fond); }
 .tag.estim { color: var(--attention); background: var(--attention-fond); }
-.tag.attention { color: var(--attention); background: var(--attention-fond); }
 .tag.manque { color: var(--manque); background: var(--manque-fond); }
 
 .alloc { display: grid; gap: var(--esp-2); }

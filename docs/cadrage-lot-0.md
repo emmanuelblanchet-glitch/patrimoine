@@ -43,7 +43,7 @@ qui sert à afficher la part financier / immobilier. La saisie est un
 parcours guidé en français, pas des formulaires qui exposent le modèle.
 
 - **MVP — ma poche financière** : lot 0 (livré) base, serveur local,
-  garde-fous ; lot 1 point de départ en cinq questions, allocation cible
+  garde-fous ; lot 1 point de départ en six questions, allocation cible
   simple et argumentée, page « quoi faire ce mois-ci », total immobilier ;
   lot 2 saisie guidée des achats, cours automatiques, performance, écart à
   la cible, règles d'enveloppe ; lot 3 iPhone, mot de passe, sauvegarde.

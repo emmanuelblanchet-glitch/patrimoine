@@ -20,14 +20,14 @@ import {
 } from '../lib/referentiel.mjs';
 import { calculerBilan } from '../lib/bilan.mjs';
 import { lireDate } from '../lib/saisie.mjs';
-import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne } from '../lib/objectif.mjs';
+import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne, validerClasse } from '../lib/objectif.mjs';
 import { etatDeLaPoche } from '../lib/poche.mjs';
 import {
   lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation,
   lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse,
 } from './formulaires.mjs';
 import {
-  pageAccueil, pageDepart, pageLignes, pageVersement, pageReglages,
+  pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages,
   pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations, pageErreur,
 } from './pages.mjs';
 import { creerFournisseur } from './explications.mjs';
@@ -59,9 +59,19 @@ const ECRANS = {
     page: (ctx, options) => pageDepart({ objectif: ctx.objectif, enveloppes: ctx.etat.enveloppes }, options),
     lire: lireFormulaireDepart,
     valider: (d) => validerObjectif(d).motifs,
+    // Une seule transaction : le point de départ et ses lignes amorcées,
+    // ou rien. Rend les avertissements à montrer avant de continuer.
     ecrire: (base, d, ctx) => {
-      enregistrerObjectif(base, d);
-      amorcerLignes(base, d, ctx.aujourdhui);
+      base.exec('BEGIN');
+      try {
+        const avertissements = enregistrerObjectif(base, d);
+        amorcerLignes(base, d, ctx.aujourdhui);
+        base.exec('COMMIT');
+        return avertissements;
+      } catch (e) {
+        base.exec('ROLLBACK');
+        throw e;
+      }
     },
     apres: '/',
   },
@@ -69,13 +79,13 @@ const ECRANS = {
     page: (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui }, options),
     lire: lireFormulaireVersement,
     valider: validerVersement,
-    ecrire: (base, d) => enregistrerVersement(base, d),
+    ecrire: enregistrerVersement,
     apres: '/',
   },
   '/lignes': {
     page: (ctx, options) => pageLignes({ etat: ctx.etat, poche: ctx.poche }, options),
     lire: lireFormulaireClasse,
-    valider: (d) => (Number.isSafeInteger(d.actifId) ? [] : ['choisir une ligne']),
+    valider: validerClasse,
     ecrire: (base, d) => classerLigne(base, d.actifId, d.classe, d.partActionsPb),
     apres: '/lignes',
   },
@@ -160,6 +170,10 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
           if (!date.ok) return envoyer(res, 400, pageErreur('Date invalide', date.motif));
           return envoyer(res, 200, pageBilan(calculerBilan(lireEtat(base), date.valeur)));
         }
+        if (chemin === '/allocation') {
+          const ctx = contexte(base, aujourdhui(), cleClaude);
+          return envoyer(res, 200, pageAllocation({ poche: ctx.poche, cible: ctx.cible }));
+        }
         if (chemin === '/reglages') {
           const ctx = contexte(base, aujourdhui(), cleClaude);
           return envoyer(res, 200, pageReglages({ objectif: ctx.objectif, cible: ctx.cible, cleClaude: ctx.cleClaude }));
@@ -181,7 +195,11 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
           // Un champ illisible ne doit pas cacher les autres erreurs : on
           // montre en une fois ce que la lecture ET le domaine reprochent.
           if (motifs.length) throw new ErreurSaisie([...new Set([...motifs, ...ecran.valider(donnees)])]);
-          ecran.ecrire(base, donnees, ctx);
+          const avertissements = ecran.ecrire(base, donnees, ctx);
+          if (Array.isArray(avertissements) && avertissements.length) {
+            // Enregistré, mais quelque chose mérite d'être lu avant de continuer.
+            return envoyer(res, 200, ecran.page(contexte(base, aujourdhui(), cleClaude), { valeurs: champs, avertissements, enregistre: true }));
+          }
         } catch (erreur) {
           if (!(erreur instanceof ErreurSaisie)) throw erreur;
           return envoyer(res, 400, ecran.page(ctx, { valeurs: champs, motifs: erreur.motifs }));
@@ -207,7 +225,7 @@ export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => proc
       const p = serveur.address().port;
       return [`${HOTE}:${p}`, `localhost:${p}`];
     };
-    const fournisseur = creerFournisseur({ base, cle: cleClaude, ...(rediger ? { rediger } : {}) });
+    const fournisseur = creerFournisseur({ base, cle: cleClaude, rediger });
     serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, cleClaude }));
     serveur.once('error', rejeter);
     serveur.listen(port, HOTE, () => resoudre(serveur));

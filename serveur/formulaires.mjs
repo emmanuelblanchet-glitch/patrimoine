@@ -3,6 +3,7 @@
 // les règles du domaine ; ici, on ne fait que lire.
 
 import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte } from '../lib/saisie.mjs';
+import { PART_ACTIONS_PAR_DEFAUT_PB } from '../lib/allocation.mjs';
 
 function lecteur(champs) {
   const motifs = [];
@@ -68,18 +69,16 @@ export function lireFormulairePassif(champs) {
 /** Les six questions du point de départ (+ deux cases : PEA et assurance-vie déjà ouverts). */
 export function lireFormulaireDepart(champs) {
   const { motifs, lire, texte } = lecteur(champs);
-  const pct = (nom, libelle) => {
-    const v = lire(lireTauxPb, nom, libelle);
-    return v === null ? null : v; // déjà en points de base (« 30 » → 3000)
-  };
+  // lireTauxPb rend déjà des points de base : « 30 » → 3000.
   const donnees = {
     reserveCentimes: lire(lireMontantFacultatif, 'reserve', 'De côté'),
     matelasCentimes: lire(lireMontantFacultatif, 'matelas', 'Matelas de précaution'),
     epargneMensuelleCentimes: lire(lireMontantFacultatif, 'epargne_mensuelle', 'Par mois'),
     peeCentimes: lire(lireMontantFacultatif, 'pee', 'PEE') ?? 0,
-    peePartActionsPb: pct('pee_part_actions', 'Part actions du PEE') ?? 5000,
+    peePartActionsPb: lire(lireTauxPb, 'pee_part_actions', 'Part actions du PEE') ?? PART_ACTIONS_PAR_DEFAUT_PB,
     horizonAnnees: lire(lireEntier, 'horizon', 'Horizon'),
-    perteMaxPb: pct('perte_max', 'Perte maximale'),
+    perteMaxPb: lire(lireTauxPb, 'perte_max', 'Perte maximale'),
+    rendementEstimePb: lire(lireTauxPb, 'rendement', 'Rendement estimé') ?? 500,
     immobilierNetCentimes: lire(lireMontantFacultatif, 'immobilier', 'Immobilier net'),
     immobilierDate: lire(lireDate, 'immobilier_date', 'Date de l\'estimation'),
     immobilierSource: texte('immobilier_source'),
@@ -97,7 +96,7 @@ export function lireFormulaireVersement(champs) {
     date: lire(lireDate, 'date', 'Date'),
     montantCentimes: lire(lireMontantFacultatif, 'montant', 'Montant'),
     nouvelleValeurCentimes: lire(lireMontantFacultatif, 'nouvelle_valeur', 'Nouvelle valeur de la ligne'),
-    source: texte('source') ?? 'versement saisi',
+    source: texte('source'),
     type: champs.type === 'abondement' ? 'abondement' : 'versement',
   };
   return { donnees, motifs };

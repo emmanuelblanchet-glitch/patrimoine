@@ -75,8 +75,11 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
   **prorata** : quand tout est dans la bande.
 - **Charge utile** : ce qui part vers Claude, et rien d'autre
   (`CLES_CHARGE_UTILE`). **Empreinte** : son hachage, clé du cache.
+- **Explication** (le cadrage dit aussi « argumentation ») : le texte qui
+  met en mots la décision des règles ; rédigé par Claude, ou de repli.
 - **Texte de repli** : l'explication écrite par gabarit depuis les mêmes
   chiffres, quand Claude n'a pas (encore) répondu.
+- **Recul** : après un appel en échec, dix minutes sans nouvel essai.
 - **Part financière** : poche ÷ (poche + immobilier net saisi).
   **Trajectoire** : son estimation à épargne et rendement constants.
 
@@ -85,8 +88,9 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Objectif** : une cible chiffrée et datée, rattachée à une poche. La
   cible de rendement de la poche financière (A5) s'affiche à côté du
   réalisé et de la bande réaliste, sans jamais pousser au levier.
-- **Plancher de perte** : la perte globale maximale tolérée sur la poche
-  financière (D3 : −30 %). Il déclenche les alertes et borne la projection.
+- **Plancher de perte** (« perte maximale » à l'écran, `perteMaxPb` dans
+  le code) : la perte globale maximale tolérée sur la poche financière
+  (D3 : −30 %). Il déclenche les alertes et borne la projection.
 - **Allocation cible** : poids cible par classe d'actifs, avec sa **bande de
   tolérance** (règle 5/25).
 - **Rééquilibrage par les flux** : remettre dans la bande avec les

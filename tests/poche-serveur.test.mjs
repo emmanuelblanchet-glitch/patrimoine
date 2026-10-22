@@ -112,6 +112,33 @@ test('S-L1-2 — un point de départ complet s\'enregistre, crée les lignes, et
   assert.equal(appelsClaude.length, 0, 'sans clé, aucun appel');
 });
 
+test('S-L1-2 — un plancher plus serré que la cible est enregistré, mais l\'avertissement s\'affiche avant de continuer', async () => {
+  const r = await post('/depart', {
+    reserve: '25 000', matelas: '15 000', epargne_mensuelle: '500', horizon: '10', perte_max: '20',
+    immobilier: '300 000', immobilier_date: '2026-10-01', immobilier_source: 'à la louche', rendement: '4',
+  });
+  assert.equal(r.statut, 200);
+  assert.match(r.corps, /enregistré/);
+  assert.match(r.corps, /chute de moitié des marchés ferait perdre 30 %/);
+  assert.equal(lireObjectif(jetable.base).perteMaxPb, 2000);
+  assert.equal(lireObjectif(jetable.base).rendementEstimePb, 400);
+  assert.equal(lireEtat(jetable.base).enveloppes.length, 3, 'un second point de départ n\'amorce aucune ligne en double');
+  await post('/depart', {
+    reserve: '25 000', matelas: '15 000', epargne_mensuelle: '500', horizon: '10', perte_max: '30',
+    immobilier: '300 000', immobilier_date: '2026-10-01', immobilier_source: 'à la louche',
+  });
+  assert.equal(lireObjectif(jetable.base).rendementEstimePb, 500, 'rendement vide : 5 % par défaut');
+});
+
+test('la page Allocation dit la cible, l\'enveloppe de chaque part et pourquoi, avec la mention', async () => {
+  const r = await requete({ chemin: '/allocation' });
+  assert.equal(r.statut, 200);
+  assert.match(r.corps, /Actions monde/);
+  assert.match(r.corps, /ETF actions monde/);
+  assert.match(r.corps, /après cinq ans de détention/);
+  assert.match(r.corps, /Aide à la décision, pas un conseil réglementé\./);
+});
+
 test('S-L1-4 et S-L1-5 — avec une clé : repli immédiat, appel en arrière-plan, puis texte rédigé servi depuis le cache sans second appel', async () => {
   cle = 'cle-de-test';
   const premier = await requete();
@@ -160,12 +187,17 @@ test('classer une ligne depuis la page Lignes', async () => {
   assert.match(refus.corps, /part actions/);
 });
 
-test('quand Claude échoue, le repli reste affiché et la raison est dite', async () => {
+test('quand Claude échoue, le repli reste affiché, la raison est dite, et aucun nouvel appel ne part avant le recul', async () => {
   reponseClaude = { ok: false, raison: 'transitoire' };
   await post('/versement', { montant: '10', actif_id: String(lireEtat(jetable.base).actifs[0].id), date: '2026-10-23', nouvelle_valeur: '25 010', source: 'relevé' });
+  const avant = appelsClaude.length;
   const premier = await requete();
   assert.match(premier.corps, /texte de repli/);
   await new Promise((r) => setTimeout(r, 20));
+  assert.equal(appelsClaude.length, avant + 1);
   const second = await requete();
-  assert.match(second.corps, /dernier appel : transitoire/);
+  assert.match(second.corps, /dernier appel : transitoire ; nouvel essai dans dix minutes/);
+  await requete();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(appelsClaude.length, avant + 1, 'pas de refacturation à chaque chargement');
 });

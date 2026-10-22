@@ -6,7 +6,10 @@
 // « Réglages → données détaillées ».
 
 import { TYPES_ENVELOPPE, NATURES_ACTIF, TYPES_PASSIF, STATUTS } from '../lib/referentiel.mjs';
-import { LIBELLES_CLASSE } from '../lib/allocation.mjs';
+import { LIBELLES_CLASSE, CLASSES_LIGNE } from '../lib/allocation.mjs';
+import { TYPES_FINANCIERS } from '../lib/poche.mjs';
+import { MENTION } from '../lib/explication.mjs';
+import { euros, eurosRonds, pct } from '../lib/format.mjs';
 
 function echapper(valeur) {
   return String(valeur ?? '')
@@ -17,11 +20,6 @@ function echapper(valeur) {
     .replaceAll("'", '&#39;');
 }
 
-const FORMAT_EUROS = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
-const FORMAT_EUROS_RONDS = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-const euros = (centimes) => (centimes == null ? '—' : FORMAT_EUROS.format(centimes / 100));
-const eurosRonds = (centimes) => (centimes == null ? '—' : FORMAT_EUROS_RONDS.format(centimes / 100));
-const pct = (pb) => `${(pb / 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
 const dateFr = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '');
 
 const LIBELLES_TYPE = {
@@ -47,12 +45,12 @@ function options(valeurs, libelles, choisie) {
     .join('');
 }
 
-const NAV = [['/', 'Ma poche'], ['/lignes', 'Lignes'], ['/versement', 'Versement'], ['/reglages', 'Réglages']];
+const NAV = [['/', 'Ma poche'], ['/allocation', 'Allocation'], ['/lignes', 'Lignes'], ['/versement', 'Versement'], ['/reglages', 'Réglages']];
 const NAV_DETAILS = [['/bilan', 'Bilan complet'], ['/enveloppes', 'Enveloppes'], ['/actifs', 'Actifs'], ['/passifs', 'Crédits'], ['/valorisations', 'Valorisations']];
 
 function gabarit(titre, actif, contenu, { details = false } = {}) {
   const lien = ([href, nom]) => `<a href="${href}"${actif === href ? ' aria-current="page"' : ''}>${nom}</a>`;
-  const nav = details ? [...NAV.slice(0, 3), ['/reglages', 'Réglages'], ...NAV_DETAILS] : NAV;
+  const nav = details ? [...NAV, ...NAV_DETAILS] : NAV;
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -122,11 +120,11 @@ export function pageAccueil({ poche, explication, aujourdhui }) {
   }).join('');
 
   const origine = explication.origine === 'claude'
-    ? `${tag('opinion', 'aide à la décision')} <small>rédigé par Claude${explication.modele ? ` (${echapper(explication.modele)})` : ''}, ${dateFr(explication.date?.slice(0, 10))}</small>`
+    ? `${tag('opinion', 'aide à la décision')} <small>rédigé par Claude (${echapper(explication.modele)}), ${dateFr(explication.date.slice(0, 10))}</small>`
     : `${tag('opinion', 'aide à la décision')} ${tag('estim', 'texte de repli')} <small>${
       explication.raison === 'sans_cle' ? 'sans clé d\'API, l\'outil se contente des règles'
-        : explication.raison ? `dernier appel : ${echapper(explication.raison)}${explication.enCours ? ' ; nouvel essai en cours' : ''}`
-          : explication.enCours ? 'l\'argumentation rédigée arrive au prochain chargement' : ''}</small>`;
+        : explication.raison ? `dernier appel : ${echapper(explication.raison)}${explication.enCours ? ' ; nouvel essai en cours' : explication.enRecul ? ' ; nouvel essai dans dix minutes' : ''}`
+          : explication.enCours ? 'l\'explication rédigée arrive au prochain chargement' : ''}</small>`;
 
   const alloc = ecarts.map((e) => `<div class="ligne-alloc">
     <span class="nom">${echapper(LIBELLES_CLASSE[e.classe])}<small>${e.dansLaBande ? 'dans la bande' : e.ecartPb > 0 ? `${pct(e.ecartPb)} sous la cible` : `${pct(-e.ecartPb)} au-dessus de la cible`}</small></span>
@@ -136,7 +134,7 @@ export function pageAccueil({ poche, explication, aujourdhui }) {
 
   const lignesHtml = lignes.length
     ? lignes.map((l) => `<tr>
-        <td>${echapper(l.libelle)}<span class="sous">${echapper(LIBELLES_TYPE[l.enveloppeType] ?? l.enveloppeType)} · ${echapper(LIBELLES_CLASSE_LIGNE[l.classe])}${l.classe === 'mixte' ? ` (${pct(l.partActionsPb ?? 5000)} actions)` : ''}</span></td>
+        <td>${echapper(l.libelle)}<span class="sous">${echapper(LIBELLES_TYPE[l.enveloppeType] ?? l.enveloppeType)} · ${echapper(LIBELLES_CLASSE_LIGNE[l.classe])}${l.classe === 'mixte' ? ` (${pct(l.partActionsPb)} actions)` : ''}</span></td>
         <td class="num">${l.valorisee ? euros(l.valeurCentimes) : '—'}</td>
         <td>${l.valeur ? `${tagStatut(l.valeur.statut)} <small>${echapper(l.valeur.source)}, ${dateEtAge(l.valeur)}</small>` : tag('manque', 'non valorisé')}</td>
       </tr>`).join('')
@@ -190,7 +188,7 @@ export function pageAccueil({ poche, explication, aujourdhui }) {
 
 // ——— Point de départ ————————————————————————————————————————————————
 
-export function pageDepart({ objectif, enveloppes }, { valeurs = {}, motifs = [], avertissements = [] } = {}) {
+export function pageDepart({ objectif, enveloppes }, { valeurs = {}, motifs = [], avertissements = [], enregistre = false } = {}) {
   const v = Object.keys(valeurs).length ? valeurs : objectif ? {
     reserve: (objectif.reserveCentimes / 100).toString(),
     matelas: (objectif.matelasCentimes / 100).toString(),
@@ -200,12 +198,14 @@ export function pageDepart({ objectif, enveloppes }, { valeurs = {}, motifs = []
     immobilier: (objectif.immobilierNetCentimes / 100).toString(),
     immobilier_date: objectif.immobilierDate,
     immobilier_source: objectif.immobilierSource,
+    rendement: (objectif.rendementEstimePb / 100).toString(),
   } : {};
   const types = new Set((enveloppes ?? []).map((e) => e.type));
   const dejaPee = types.has('pee');
   return gabarit('Point de départ', '/depart', `
 <h1>${objectif ? 'Mon point de départ' : 'Six questions pour démarrer'}</h1>
 <p class="sous-titre">Réponds à la louche, en euros. Tu pourras revenir ici quand tu veux. ${objectif ? '' : 'À la fin, l\'outil crée tes premières lignes.'}</p>
+${enregistre ? `<div class="carte" style="margin-bottom:var(--esp-3)">${tag('fait', 'enregistré')} Ton point de départ est enregistré. Lis ce qui suit, puis <a href="/">va voir ta poche</a>.</div>` : ''}
 ${blocErreurs(motifs)}
 ${blocAvertissements('À savoir', avertissements)}
 <form method="post" action="/depart" class="saisie questions">
@@ -219,21 +219,58 @@ ${blocAvertissements('À savoir', avertissements)}
   ${champ('immobilier', '6. Que vaut ton immobilier, net de crédits, à la louche ?', v, { requis: true, question: true, aide: 'une estimation suffit ; 0 si aucun' })}
   ${champ('immobilier_date', 'Date de cette estimation', v, { type: 'date', requis: true })}
   ${champ('immobilier_source', 'D\'où vient-elle ?', v, { requis: true, aide: 'agence, annonces, à la louche…' })}
+  ${champ('rendement', 'Rendement annuel estimé de la poche (%)', v, { aide: 'sert à la trajectoire seulement ; 5 par défaut, c\'est une estimation' })}
   ${objectif ? '' : `<div><span class="question">Ce que tu as déjà ouvert</span>${case_('a_pea', 'un PEA', v)}${case_('a_av', 'une assurance-vie', v)}<small>Coche seulement ce qui existe ; l'outil te dira quoi ouvrir sinon.</small></div>`}
   <button>Enregistrer</button>
 </form>`);
 }
 
+// ——— Allocation ——————————————————————————————————————————————————————
+
+const POURQUOI_ENVELOPPE = {
+  pea: 'Le PEA : après cinq ans de détention, les gains n\'y paient que les prélèvements sociaux. On l\'ouvre tôt, le compteur part à l\'ouverture. Un retrait avant cinq ans le ferme.',
+  livret: 'Le livret garde le matelas de précaution : disponible tout de suite, sans risque, sans impôt.',
+  av: 'L\'assurance-vie en fonds euros reçoit la part sans risque au-delà du matelas : capital garanti, argent disponible, fiscalité adoucie après huit ans.',
+  compte_courant: 'Le compte courant tient lieu de livret tant que celui-ci n\'existe pas.',
+  pee: 'Le PEE compte dans la poche selon la part actions de ses fonds ; il est bloqué cinq ans, on n\'y verse que l\'abondement et la participation.',
+  cto: 'Le compte-titres n\'a ni contrainte ni avantage : il reçoit ce qui ne rentre pas dans le PEA.',
+};
+
+export function pageAllocation({ poche, cible }) {
+  const lignesCible = poche.classes === undefined ? Object.keys(cible) : poche.classes;
+  const blocs = lignesCible.map((classe) => {
+    const d = poche.destinations[classe];
+    const type = d.enveloppeType;
+    const ou = d.ligne ? `${echapper(d.ligne.libelle)} <small>· ${echapper(LIBELLES_TYPE[type] ?? type)}</small>` : tag('manque', `à ouvrir : ${NOM_ENVELOPPE_A_OUVRIR[d.aOuvrir] ?? d.aOuvrir}`);
+    const motif = d.motif === 'matelas' ? ' Le livret d\'abord, tant que le matelas de précaution n\'est pas reconstitué.' : '';
+    return `<div class="carte"><span class="etiquette">${echapper(LIBELLES_CLASSE[classe])}</span><span class="chiffre petit">${pct(cible[classe])}</span>
+      <p>Reçoit ses versements sur : ${ou}.</p>
+      <p class="source">${echapper(POURQUOI_ENVELOPPE[type] ?? '')}${echapper(motif)}</p></div>`;
+  }).join('');
+  return gabarit('Allocation', '/allocation', `
+<h1>Mon allocation</h1>
+<p class="sous-titre">La cible de la poche, et l'enveloppe qui accueille chaque part. ${tag('opinion', 'aide à la décision')}</p>
+<div class="synthese">${blocs}</div>
+<section class="section">
+  <h2>La règle, en clair</h2>
+  <div class="carte">
+    <p>Chaque classe a une bande de tolérance : 5 points autour de sa cible, ou 25 % de la cible si c'est moins. Tant qu'une classe est sous sa cible au-delà de sa bande, <strong>tout le versement du mois lui va</strong> (la plus en retard d'abord). Quand tout est dans la bande, le versement suit la cible. <strong>Rien ne se vend</strong> : on ne rééquilibre que par les versements.</p>
+    <p>Le PEE compte dans les deux classes selon la part actions de ses fonds. La cible 60 / 40 vient du point de départ : avec 60 % d'actions, une chute de moitié des marchés ferait perdre 30 % de la poche, la perte maximale que tu as dite accepter.</p>
+    <p class="source">${echapper(MENTION)}</p>
+  </div>
+</section>`);
+}
+
 // ——— Lignes ——————————————————————————————————————————————————————————
 
 export function pageLignes({ etat, poche }, { valeurs = {}, motifs = [] } = {}) {
-  const financiers = etat.enveloppes.filter((e) => e.type !== 'immobilier_direct' && e.type !== 'societe');
+  const financiers = etat.enveloppes.filter((e) => TYPES_FINANCIERS.has(e.type));
   const idsFinanciers = new Set(financiers.map((e) => e.id));
   const nomEnv = new Map(etat.enveloppes.map((e) => [e.id, e]));
   const candidats = etat.actifs.filter((a) => idsFinanciers.has(a.enveloppeId) && !a.dateCloture);
   const lignes = poche.lignes.map((l) => `<tr>
       <td>${echapper(l.libelle)}<span class="sous">${echapper(l.enveloppeLibelle)} · ${echapper(LIBELLES_TYPE[l.enveloppeType] ?? l.enveloppeType)}</span></td>
-      <td>${echapper(LIBELLES_CLASSE_LIGNE[l.classe])}${l.classe === 'mixte' ? ` <small>${pct(l.partActionsPb ?? 5000)} actions</small>` : ''}</td>
+      <td>${echapper(LIBELLES_CLASSE_LIGNE[l.classe])}${l.classe === 'mixte' ? ` <small>${pct(l.partActionsPb)} actions</small>` : ''}</td>
       <td class="num">${l.valorisee ? euros(l.valeurCentimes) : '—'}</td>
     </tr>`).join('');
   const nonClasses = candidats.filter((a) => !a.classePoche);
@@ -251,7 +288,7 @@ ${nonClasses.length ? blocAvertissements('À classer', nonClasses.map((a) => `«
 ${blocErreurs(motifs)}
 ${candidats.length ? `<form method="post" action="/lignes" class="saisie">
   ${choix('actif_id', 'Ligne', choixActifs)}
-  ${choix('classe', 'Classe', options(['actions_monde', 'sans_risque', 'mixte'], LIBELLES_CLASSE_LIGNE, valeurs.classe))}
+  ${choix('classe', 'Classe', options(CLASSES_LIGNE, LIBELLES_CLASSE_LIGNE, valeurs.classe))}
   ${champ('part_actions', 'Part actions, si mixte (%)', valeurs, { aide: 'pour un PEE ou un fonds mélangé' })}
   <button>Classer</button>
 </form>` : '<p class="vide">Aucun actif financier à classer. Crée-les depuis <a href="/actifs">données détaillées</a>, ou réponds au <a href="/depart">point de départ</a>.</p>'}
@@ -285,16 +322,13 @@ export function pageReglages({ objectif, cible, cleClaude }) {
   return gabarit('Réglages', '/reglages', `
 <h1>Réglages</h1>
 <div class="liens">
-  <a href="/depart"><strong>Mon point de départ</strong><small>${objectif ? `mis à jour le ${dateFr(objectif.misAJourLe?.slice(0, 10))}` : 'pas encore rempli'}</small></a>
+  <a href="/depart"><strong>Mon point de départ</strong><small>${objectif ? `mis à jour le ${dateFr(objectif.misAJourLe.slice(0, 10))}` : 'pas encore rempli'}</small></a>
+  <a href="/allocation"><strong>Mon allocation</strong><small>la cible, les enveloppes et pourquoi</small></a>
   <a href="/bilan"><strong>Données détaillées</strong><small>bilan complet, enveloppes, actifs, crédits, valorisations (immobilier compris)</small></a>
 </div>
 <section class="section">
-  <h2>Cible</h2>
-  <div class="carte"><p>${Object.entries(cible).map(([c, p]) => `${echapper(LIBELLES_CLASSE[c])} ${pct(p)}`).join(' · ')}</p><p class="source">Bandes de tolérance : 5 points, ou 25 % de la cible si c'est moins. Versement du mois à la ligne la plus en retard ; au prorata si tout est dans la bande. Jamais de vente.</p></div>
-</section>
-<section class="section">
   <h2>Argumentation par Claude</h2>
-  <div class="carte"><p>${cleClaude ? `${tag('fait', 'clé présente')} Les textes sont rédigés par Claude et mis en cache tant que la situation ne change pas.` : `${tag('manque', 'pas de clé')} Sans <code>ANTHROPIC_API_KEY</code> dans l'environnement du serveur, l'outil affiche un texte de repli écrit depuis les mêmes chiffres.`}</p><p class="source">Ce qui part : la cible, les poids actuels, le versement et sa répartition, l'horizon et le plancher. Rien d'autre.</p></div>
+  <div class="carte"><p>${cleClaude ? `${tag('fait', 'clé présente')} Les textes sont rédigés par Claude et mis en cache tant que la situation ne change pas.` : `${tag('manque', 'pas de clé')} Sans <code>ANTHROPIC_API_KEY</code> dans l'environnement du serveur, l'outil affiche un texte de repli écrit depuis les mêmes chiffres.`}</p><p class="source">Ce qui part : la cible, les poids actuels, le versement et sa répartition (avec l'enveloppe visée, ou à ouvrir), l'horizon et le plancher. Rien d'autre : ni valeur de la poche, ni immobilier, ni libellé, ni identité.</p></div>
 </section>`);
 }
 

@@ -116,7 +116,21 @@ plus l'entrée.
   politique de sécurité du contenu ajoute `font-src 'self'`.
 - La saisie « classer une ligne » (page Lignes) couvre les actifs créés par
   les pages détaillées ; créer un nouvel actif passe encore par la page
-  Actifs du lot 0 (un parcours guidé « ajouter une ligne » reste à faire).
+  Actifs du lot 0 (un parcours guidé « ajouter une ligne » reste à faire —
+  reliquat acté, lot 2).
+- *Après revue* : la charge utile vers Claude est exactement la liste du
+  cadrage, l'enveloppe visée (ou à ouvrir) comprise dans la répartition ;
+  ni valeur de la poche ni part financière (avec les deux, on retrouverait
+  l'immobilier). L'appel active le repli serveur d'Anthropic
+  (`fallbacks: 'default'`) : en cas de refus par un classifieur, un autre
+  modèle rédige plutôt que de rendre un refus. Après un échec, pas de nouvel
+  essai avant dix minutes (pas de refacturation à chaque chargement). Le
+  cache ne garde que la situation courante. Le rendement estimé de la
+  trajectoire est une septième réponse du point de départ (5 % par défaut).
+  L'avertissement du plancher s'affiche à l'enregistrement, avant de
+  continuer. Une page « Allocation » dit la cible, l'enveloppe de chaque part
+  et pourquoi, avec la mention complète. Poche vide : le premier versement
+  part au prorata de la cible (lecture de L1-5, à confirmer).
 
 ## Seams testés (bloquants, jeux synthétiques)
 
