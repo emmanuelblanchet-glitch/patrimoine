@@ -1,6 +1,6 @@
 # Lot 1 — ma poche financière
 
-Cadrage court, 23/10/2026, après le recadrage du même jour (l'objet de
+Cadrage court, 22/10/2026, après le recadrage du même jour (l'objet de
 l'outil est la poche financière à construire ; voir `docs/cadrage-lot-0.md`,
 § Roadmap). Aucun chiffre personnel ici (ADR-0002).
 
@@ -16,7 +16,7 @@ elle représente face à l'immobilier.
 **Démontrable seul** : « voilà où j'en suis, et voilà quoi faire ce
 mois-ci avec mes 500 € ».
 
-## Décisions du lot (23/10/2026, Emmanuel — cadrage validé le 23/10/2026)
+## Décisions du lot (22/10/2026, Emmanuel — cadrage validé le 22/10/2026)
 
 | Clé | Décision |
 |---|---|
