@@ -6,8 +6,8 @@ import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier,
 
 function lecteur(champs) {
   const motifs = [];
-  const lire = (fn, nom, libelle, options) => {
-    const r = fn(champs[nom] ?? '', options);
+  const lire = (fn, nom, libelle) => {
+    const r = fn(champs[nom] ?? '');
     if (!r.ok) {
       motifs.push(`${libelle} : ${r.motif}`);
       return null;
@@ -26,7 +26,7 @@ export function lireFormulaireEnveloppe(champs) {
     libelle: texte('libelle'),
     etablissement: texte('etablissement'),
     dateOuverture: lire(lireDate, 'date_ouverture', 'Date d\'ouverture'),
-    quotePart: lire(lireQuotePart, 'quote_part', 'Quote-part') ?? { num: 1, den: 1 },
+    quotePart: lire(lireQuotePart, 'quote_part', 'Quote-part'),
     regimeFiscal: texte('regime_fiscal'),
   };
   return { donnees, motifs };
@@ -40,10 +40,8 @@ export function lireFormulaireActif(champs) {
     libelle: texte('libelle'),
     identifiant: texte('identifiant'),
     classe: texte('classe'),
-    zone: texte('zone'),
-    devise: texte('devise') ?? 'EUR',
-    liquidite: texte('liquidite'),
     dateAcquisition: lire(lireDate, 'date_acquisition', 'Date d\'acquisition'),
+    dateCloture: lire(lireDate, 'date_cloture', 'Date de cession'),
     prixAcquisitionCentimes: lire(lireMontantFacultatif, 'prix_acquisition', 'Prix d\'acquisition'),
     fraisAcquisitionCentimes: lire(lireMontantFacultatif, 'frais_acquisition', 'Frais d\'acquisition'),
   };

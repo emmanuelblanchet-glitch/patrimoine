@@ -56,7 +56,6 @@ test('dates : format ISO et calendrier réel', () => {
   assert.equal(lireDate('2026-02-29').ok, false);
   assert.equal(lireDate('22/10/2026').ok, false);
   assert.equal(lireDate('').valeur, null);
-  assert.equal(lireDate('', { obligatoire: true }).ok, false);
 });
 
 test('entiers et textes', () => {

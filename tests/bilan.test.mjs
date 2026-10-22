@@ -95,7 +95,7 @@ test('un crédit sans capital restant dû saisi rend le bilan incomplet et le si
   etat.valorisations = etat.valorisations.filter((v) => v.cible.passifId == null);
   const b = calculerBilan(etat, '2026-10-22');
   assert.equal(b.global.complet, false);
-  assert.deepEqual(b.avertissements.map((a) => a.code), ['passif_non_valorise']);
+  assert.deepEqual(b.avertissements.map((a) => a.code), ['passif_sans_solde']);
 });
 
 test('l\'âge de chaque valorisation est rendu, et au-delà d\'un an il est signalé', () => {
@@ -114,6 +114,27 @@ test('un actif acquis après la date du bilan ou clôturé avant n\'y figure pas
   etat.actifs[0].dateAcquisition = '2020-01-01';
   etat.actifs[0].dateCloture = '2026-10-01';
   assert.equal(calculerBilan(etat, '2026-10-22').enveloppes[0].biens.length, 0);
+});
+
+test('le crédit d\'un bien cédé qui garde un solde reste compté, signalé, et rend le bilan incomplet', () => {
+  const etat = etatUnBien({ num: 1, den: 2 });
+  etat.actifs[0].dateCloture = '2026-10-01';
+  const b = calculerBilan(etat, '2026-10-22');
+  assert.equal(b.enveloppes[0].biens.length, 0);
+  assert.deepEqual(b.global.dette.exact, fraction(12_000_001, 2), 'la dette ne disparaît pas avec son bien');
+  assert.equal(b.global.complet, false);
+  assert.deepEqual(b.avertissements.map((a) => a.code), ['dette_sans_actif']);
+  assert.equal(b.enveloppes[0].dettesSansActif[0].crd.centimesA100, 12_000_001);
+});
+
+test('le crédit d\'un bien cédé soldé à zéro ne laisse ni dette ni avertissement', () => {
+  const etat = etatUnBien({ num: 1, den: 1 });
+  etat.actifs[0].dateCloture = '2026-10-01';
+  etat.valorisations.push(val({ passifId: 100 }, '2026-10-01', 0, 'fait', 'décompte de remboursement anticipé'));
+  const b = calculerBilan(etat, '2026-10-22');
+  assert.equal(b.global.dette.centimes, 0);
+  assert.equal(b.global.complet, true);
+  assert.deepEqual(b.avertissements, []);
 });
 
 test('bilan global sur plusieurs enveloppes de quotes-parts différentes', () => {

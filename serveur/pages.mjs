@@ -1,9 +1,9 @@
 // Pages HTML rendues côté serveur. Tout texte venant de la base ou d'une
 // saisie passe par echapper() : un libellé ne devient jamais du HTML.
 
-import { TYPES_ENVELOPPE, NATURES_ACTIF, TYPES_PASSIF } from '../lib/referentiel.mjs';
+import { TYPES_ENVELOPPE, NATURES_ACTIF, TYPES_PASSIF, STATUTS } from '../lib/referentiel.mjs';
 
-export function echapper(valeur) {
+function echapper(valeur) {
   return String(valeur ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -13,7 +13,7 @@ export function echapper(valeur) {
 }
 
 const FORMAT_EUROS = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
-export const euros = (centimes) => (centimes == null ? '—' : FORMAT_EUROS.format(centimes / 100));
+const euros = (centimes) => (centimes == null ? '—' : FORMAT_EUROS.format(centimes / 100));
 
 const LIBELLES_TYPE = {
   immobilier_direct: 'Immobilier en direct', pee: 'PEE', per: 'PER', pea: 'PEA', cto: 'Compte-titres',
@@ -46,7 +46,7 @@ function gabarit(titre, actif, contenu) {
 <body>
 <header class="entete">
   <span class="marque">Patrimoine</span>
-  <nav>${lien('/', 'Bilan')}${lien('/enveloppes', 'Enveloppes')}${lien('/actifs', 'Actifs')}${lien('/passifs', 'Crédits')}${lien('/valorisations', 'Valeurs')}</nav>
+  <nav>${lien('/', 'Bilan')}${lien('/enveloppes', 'Enveloppes')}${lien('/actifs', 'Actifs')}${lien('/passifs', 'Crédits')}${lien('/valorisations', 'Valorisations')}</nav>
 </header>
 <main>
 ${contenu}
@@ -69,9 +69,13 @@ const choix = (nom, libelle, contenu) => `<label>${libelle}<select name="${nom}"
 
 const MESSAGES_AVERTISSEMENT = {
   actif_non_valorise: (a) => `« ${a.libelle} » n'a aucune valeur saisie à cette date : il est exclu du total.`,
-  passif_non_valorise: (a) => `Le crédit « ${a.libelle} » n'a pas de capital restant dû saisi : bilan incomplet.`,
+  passif_sans_solde: (a) => `Le crédit « ${a.libelle} » n'a pas de capital restant dû saisi : bilan incomplet.`,
   valorisation_ancienne: (a) => `La valeur de « ${a.libelle} » date de ${a.ageJours} jours.`,
+  dette_sans_actif: (a) => `Le crédit « ${a.libelle} » garde un solde alors que « ${a.actif} » n'est pas au bilan à cette date : la dette reste comptée.`,
 };
+
+const age = (jours) => (jours === 0 ? 'du jour' : `il y a ${jours} j`);
+const dateEtAge = (v) => `${echapper(v.date)}, ${age(v.ageJours)}`;
 
 export function pageBilan(bilan) {
   const g = bilan.global;
@@ -81,8 +85,8 @@ export function pageBilan(bilan) {
 
   const enveloppes = bilan.enveloppes.map((e) => {
     const lignes = e.biens.map((b) => {
-      const source = b.valeur ? `${echapper(b.valeur.source)}, ${echapper(b.valeur.date)}` : 'aucune valeur saisie';
-      const dettes = b.dettes.map((d) => `<div class="sous">${echapper(d.libelle)} : ${d.crd ? `${euros(d.crd.centimes)} (${echapper(d.crd.date)})` : 'capital restant dû non saisi'}</div>`).join('');
+      const source = b.valeur ? `${echapper(b.valeur.source)}, ${dateEtAge(b.valeur)}` : 'aucune valeur saisie';
+      const dettes = b.dettes.map((d) => `<div class="sous">${echapper(d.libelle)} : ${d.crd ? `${euros(d.crd.centimes)} (${dateEtAge(d.crd)})` : 'capital restant dû non saisi'}</div>`).join('');
       return `<tr>
         <td>${echapper(b.libelle)}<div class="sous">${source}</div>${dettes}</td>
         <td class="num">${b.valeur ? euros(b.valeur.centimes) : '—'}</td>
@@ -90,7 +94,13 @@ export function pageBilan(bilan) {
         <td class="num fort">${b.net ? euros(b.net.centimes) : '—'}</td>
         <td>${b.valeur ? pastille(b.statut) : '<span class="pastille manque">non valorisé</span>'}</td>
       </tr>`;
-    }).join('');
+    }).join('') + e.dettesSansActif.map((d) => `<tr>
+        <td>${echapper(d.libelle)}<div class="sous">crédit de « ${echapper(d.actif)} », hors bilan à cette date · ${echapper(d.crd.source)}, ${dateEtAge(d.crd)}</div></td>
+        <td class="num">—</td>
+        <td class="num">${euros(d.crd.centimes)}</td>
+        <td class="num fort">—</td>
+        <td><span class="pastille manque">dette sans bien</span></td>
+      </tr>`).join('');
     return `<section class="enveloppe">
       <h2>${echapper(e.libelle)} <span class="meta">${echapper(LIBELLES_TYPE[e.type] ?? e.type)} · quote-part ${quotePart(e.quotePart)}</span></h2>
       <div class="table"><table>
@@ -102,7 +112,7 @@ export function pageBilan(bilan) {
   }).join('');
 
   const vide = bilan.enveloppes.length === 0
-    ? '<p class="vide">Rien n\'est encore saisi. Commence par créer une <a href="/enveloppes">enveloppe</a>, puis ses <a href="/actifs">actifs</a>, leurs <a href="/passifs">crédits</a> et leurs <a href="/valorisations">valeurs</a>.</p>'
+    ? '<p class="vide">Rien n\'est encore saisi. Commence par créer une <a href="/enveloppes">enveloppe</a>, puis ses <a href="/actifs">actifs</a>, leurs <a href="/passifs">crédits</a> et leurs <a href="/valorisations">valorisations</a>.</p>'
     : '';
 
   return gabarit('Bilan', '/', `
@@ -117,7 +127,7 @@ ${vide}
 ${enveloppes}`);
 }
 
-export function pageErreur(statut, titre, message) {
+export function pageErreur(titre, message) {
   return gabarit(titre, '', `<h1>${echapper(titre)}</h1><p>${echapper(message)}</p><p><a href="/">Retour au bilan</a></p>`);
 }
 
@@ -163,6 +173,7 @@ ${blocErreurs(motifs)}
   ${champ('date_acquisition', 'Date d\'acquisition', valeurs, { type: 'date' })}
   ${champ('prix_acquisition', 'Prix d\'acquisition (€)', valeurs, { aide: 'à 100 %' })}
   ${champ('frais_acquisition', 'Frais d\'acquisition (€)', valeurs)}
+  ${champ('date_cloture', 'Date de cession', valeurs, { type: 'date', aide: 'vide tant que tu le détiens' })}
   ${champ('classe', 'Classe d\'actifs', valeurs, { aide: 'immobilier, actions, monétaire…' })}
   <button>Enregistrer</button>
 </form>`);
@@ -175,7 +186,7 @@ export function pagePassifs({ actifs, passifs }, { valeurs = {}, motifs = [] } =
   const choixActifs = actifs.map((a) => `<option value="${a.id}"${String(a.id) === valeurs.actif_id ? ' selected' : ''}>${echapper(a.libelle)}</option>`).join('');
   return gabarit('Crédits', '/passifs', `
 <h1>Crédits</h1>
-<p class="aide">Chaque crédit finance un actif. Son capital restant dû se saisit dans <a href="/valorisations">Valeurs</a>, depuis ton relevé de prêt.</p>
+<p class="aide">Chaque crédit finance un actif. Son capital restant dû se saisit dans <a href="/valorisations">Valorisations</a>, depuis ton relevé de prêt.</p>
 <div class="table"><table><thead><tr><th>Libellé</th><th>Bien financé</th><th>Établissement</th><th class="num">Taux</th><th class="num">Mensualité</th><th class="num">Assurance</th></tr></thead>
 <tbody>${lignes || '<tr><td colspan="6" class="vide">Aucun crédit.</td></tr>'}</tbody></table></div>
 <h2>Ajouter un crédit</h2>
@@ -204,8 +215,8 @@ export function pageValorisations({ actifs, passifs, valorisations }, { valeurs 
     ...actifs.map((a) => [`actif:${a.id}`, a.libelle]),
     ...passifs.map((p) => [`passif:${p.id}`, `Crédit · ${p.libelle} (capital restant dû)`]),
   ].map(([v, l]) => `<option value="${v}"${v === valeurs.cible ? ' selected' : ''}>${echapper(l)}</option>`).join('');
-  return gabarit('Valeurs', '/valorisations', `
-<h1>Valeurs</h1>
+  return gabarit('Valorisations', '/valorisations', `
+<h1>Valorisations</h1>
 <p class="aide">Une valeur datée pour un actif, ou le capital restant dû d'un crédit. Toujours à 100 %, toujours avec sa source.</p>
 <h2>Ajouter une valeur</h2>
 ${blocErreurs(motifs)}
@@ -214,7 +225,7 @@ ${blocErreurs(motifs)}
   ${champ('date', 'Date', valeurs, { type: 'date', requis: true })}
   ${champ('valeur', 'Montant (€)', valeurs, { requis: true, aide: 'à 100 %, exemple : 245 000' })}
   ${champ('source', 'Source', valeurs, { requis: true, aide: 'relevé de prêt, estimation d\'agence, relevé PEE…' })}
-  ${choix('statut', 'Statut *', options(['fait', 'estimation'], { fait: 'Fait (relevé, acte)', estimation: 'Estimation' }, valeurs.statut))}
+  ${choix('statut', 'Statut *', options(STATUTS, { fait: 'Fait (relevé, acte)', estimation: 'Estimation' }, valeurs.statut))}
   ${champ('note', 'Note', valeurs)}
   <button>Enregistrer</button>
 </form>

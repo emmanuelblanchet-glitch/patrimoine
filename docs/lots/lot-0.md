@@ -71,9 +71,13 @@ Sortie : par enveloppe, par bien et global :
   `estimation` dès qu'un composant l'est ;
 - un actif **sans valorisation** est listé « non valorisé » et exclu du
   total, avec un avertissement — jamais compté à zéro en silence ;
-- *précisé au développement* : la **dette** d'un bien non valorisé reste
-  comptée (une dette ne se masque jamais) et le bilan est marqué
-  **incomplet** ; même marque pour un crédit sans capital restant dû saisi ;
+- *précisé au développement, à valider par Emmanuel* : la **dette** d'un
+  bien non valorisé reste comptée (une dette ne se masque jamais) et le
+  bilan est marqué **incomplet** ; même marque pour un crédit sans capital
+  restant dû saisi, et pour le crédit d'un bien cédé ou pas encore acquis
+  qui garde un solde (« dette sans bien ») ;
+- *précisé au développement* : une valorisation de plus de **365 jours**
+  est signalée ; chaque ligne affiche la date et l'âge de sa valeur ;
 - âge de chaque valorisation en jours, pour signaler ce qui date.
 
 Arithmétique en entiers ; un seul arrondi, à l'affichage.
@@ -86,6 +90,9 @@ Arithmétique en entiers ; un seul arrondi, à l'affichage.
 - Pages : `/` bilan ; `/enveloppes`, `/actifs`, `/passifs`,
   `/valorisations` : liste + formulaire d'ajout. HTML rendu côté serveur,
   CSS inline, lisible sur un petit écran (le lot 3 ne redessine pas).
+- *précisé au développement* : la feuille de style est un fichier
+  (`public/style.css`) et non du CSS inline, pour que la politique de
+  sécurité du contenu interdise tout style inline (`style-src 'self'`).
 - Écritures par formulaire `POST` ; une écriture invalide répond 400 avec le
   motif ; une requête dont l'en-tête `Host` n'est pas l'adresse locale est
   refusée (403) — garde contre le rebond DNS.

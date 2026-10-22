@@ -1,24 +1,41 @@
-// Configuration du serveur local — fonctions pures, testées par la fumée.
+// Configuration du serveur local, testée par la fumée.
 //
 // Deux règles structurelles (cadrage du lot 0) :
 // - le serveur n'écoute que sur 127.0.0.1 : l'hôte est une constante, aucune
 //   variable d'environnement ne peut le changer ;
 // - la base ne peut pas vivre dans le dépôt (ADR-0002) : un chemin situé
 //   sous la racine du dépôt empêche le démarrage, avant toute ouverture.
+//   Le disque du Mac ignore la casse et suit les liens : la comparaison se
+//   fait donc sur le chemin canonique, en minuscules, et un fichier de base
+//   qui serait un lien symbolique est refusé (revue sécurité du lot 0).
 
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, realpathSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const HOTE = '127.0.0.1';
-export const PORT_PAR_DEFAUT = 8710;
+const PORT_PAR_DEFAUT = 8710;
 export const RACINE_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Chemin canonique, liens symboliques résolus sur la partie qui existe (macOS : /tmp → /private/tmp). */
+function estUnLien(chemin) {
+  try {
+    return lstatSync(chemin).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+/** Chemin canonique : parent résolu par le système (casse réelle, liens suivis). */
 function canonique(chemin) {
   const absolu = resolve(chemin);
   const parent = dirname(absolu);
-  return existsSync(parent) ? join(realpathSync(parent), basename(absolu)) : absolu;
+  return existsSync(parent) ? join(realpathSync.native(parent), basename(absolu)) : absolu;
+}
+
+function sousLaRacine(chemin, racine) {
+  const c = chemin.toLowerCase();
+  const r = racine.toLowerCase();
+  return c === r || c.startsWith(r + sep);
 }
 
 /**
@@ -28,9 +45,12 @@ export function cheminBaseAutorise(chemin, racineDepot = RACINE_DEPOT) {
   if (typeof chemin !== 'string' || chemin.trim() === '') {
     return { ok: false, motif: 'PATRIMOINE_DB absent : indiquer le chemin de la base (hors du dépôt, par exemple ~/Patrimoine/patrimoine.db)' };
   }
+  if (estUnLien(resolve(chemin))) {
+    return { ok: false, motif: `la base ne peut pas être un lien symbolique : ${resolve(chemin)}` };
+  }
   const cible = canonique(chemin);
-  const racine = existsSync(racineDepot) ? realpathSync(racineDepot) : resolve(racineDepot);
-  if (cible === racine || cible.startsWith(racine + sep)) {
+  const racine = existsSync(racineDepot) ? realpathSync.native(racineDepot) : resolve(racineDepot);
+  if (sousLaRacine(cible, racine) || sousLaRacine(resolve(chemin), resolve(racineDepot))) {
     return { ok: false, motif: `la base ne peut pas vivre dans le dépôt (ADR-0002) : ${cible}` };
   }
   if (!existsSync(dirname(cible))) {

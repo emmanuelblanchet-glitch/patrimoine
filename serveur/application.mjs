@@ -23,19 +23,22 @@ import { lireDate } from '../lib/saisie.mjs';
 import { lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation } from './formulaires.mjs';
 import { pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations, pageErreur } from './pages.mjs';
 
-export const DOSSIER_PUBLIC = join(RACINE_DEPOT, 'public');
-export const TYPES_STATIQUES = {
+const DOSSIER_PUBLIC = join(RACINE_DEPOT, 'public');
+const TYPES_STATIQUES = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
 };
-export const LIMITE_CORPS_OCTETS = 64 * 1024;
+const LIMITE_CORPS_OCTETS = 64 * 1024;
 
+// Referrer-Policy : surtout pas « no-referrer ». Avec elle, la norme Fetch
+// fait envoyer « Origin: null » sur un POST de formulaire, et la garde
+// Origin refuserait les propres formulaires de l'outil (revue du lot 0).
 const ENTETES_SECURITE = {
   'Content-Security-Policy': "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
+  'Referrer-Policy': 'same-origin',
   'Cache-Control': 'no-store',
 };
 
@@ -55,15 +58,19 @@ function lireCorps(req) {
   return new Promise((resoudre, rejeter) => {
     const morceaux = [];
     let taille = 0;
-    req.on('data', (m) => {
+    const surDonnees = (m) => {
       taille += m.length;
       if (taille > LIMITE_CORPS_OCTETS) {
+        // On cesse de garder le corps mais on le laisse s'écouler : détruire
+        // la connexion ici empêcherait le client de recevoir le 413.
+        req.off('data', surDonnees);
+        req.resume();
         rejeter(Object.assign(new Error('corps trop volumineux'), { statut: 413 }));
-        req.destroy();
         return;
       }
       morceaux.push(m);
-    });
+    };
+    req.on('data', surDonnees);
     req.on('end', () => resoudre(Buffer.concat(morceaux).toString('utf8')));
     req.on('error', rejeter);
   });
@@ -72,25 +79,25 @@ function lireCorps(req) {
 async function servirStatique(res, nom) {
   const ext = extname(nom);
   const valide = /^[a-z0-9][a-z0-9._-]*$/i.test(nom) && !nom.includes('..') && TYPES_STATIQUES[ext];
-  if (!valide) return envoyer(res, 404, pageErreur(404, 'Introuvable', 'Cette page n\'existe pas.'));
+  if (!valide) return envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
   try {
     const contenu = await readFile(join(DOSSIER_PUBLIC, nom));
     res.writeHead(200, { 'Content-Type': TYPES_STATIQUES[ext], ...ENTETES_SECURITE });
     res.end(contenu);
   } catch {
-    envoyer(res, 404, pageErreur(404, 'Introuvable', 'Cette page n\'existe pas.'));
+    envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
   }
 }
 
 /**
  * @param {{ base, hotesAutorises: () => string[], aujourdhui?: () => string }} options
  */
-export function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date().toISOString().slice(0, 10) }) {
+function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date().toISOString().slice(0, 10) }) {
   return async (req, res) => {
     try {
       const hote = req.headers.host ?? '';
       if (!hotesAutorises().includes(hote)) {
-        return envoyer(res, 403, pageErreur(403, 'Accès refusé', 'Cette adresse n\'est pas celle du serveur local.'));
+        return envoyer(res, 403, pageErreur('Accès refusé', 'Cette adresse n\'est pas celle du serveur local.'));
       }
       const url = new URL(req.url, `http://${hote}`);
       const chemin = url.pathname;
@@ -100,19 +107,19 @@ export function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new
         if (chemin === '/') {
           const demandee = url.searchParams.get('date');
           const date = demandee ? lireDate(demandee) : { ok: true, valeur: aujourdhui() };
-          if (!date.ok) return envoyer(res, 400, pageErreur(400, 'Date invalide', date.motif));
+          if (!date.ok) return envoyer(res, 400, pageErreur('Date invalide', date.motif));
           return envoyer(res, 200, pageBilan(calculerBilan(lireEtat(base), date.valeur)));
         }
         if (ECRANS[chemin]) return envoyer(res, 200, ECRANS[chemin].page(lireEtat(base)));
-        return envoyer(res, 404, pageErreur(404, 'Introuvable', 'Cette page n\'existe pas.'));
+        return envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
       }
 
       if (req.method === 'POST') {
         if (req.headers.origin !== `http://${hote}`) {
-          return envoyer(res, 403, pageErreur(403, 'Écriture refusée', 'Une saisie ne peut venir que d\'une page de ce serveur.'));
+          return envoyer(res, 403, pageErreur('Écriture refusée', 'Une saisie ne peut venir que d\'une page de ce serveur.'));
         }
         const ecran = ECRANS[chemin];
-        if (!ecran) return envoyer(res, 404, pageErreur(404, 'Introuvable', 'Cette page n\'existe pas.'));
+        if (!ecran) return envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
         const champs = Object.fromEntries(new URLSearchParams(await lireCorps(req)));
         const { donnees, motifs } = ecran.lire(champs);
         try {
@@ -128,11 +135,11 @@ export function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new
         return res.end();
       }
 
-      return envoyer(res, 405, pageErreur(405, 'Méthode refusée', 'Seules la lecture et la saisie par formulaire sont permises.'), { Allow: 'GET, HEAD, POST' });
+      return envoyer(res, 405, pageErreur('Méthode refusée', 'Seules la lecture et la saisie par formulaire sont permises.'), { Allow: 'GET, HEAD, POST' });
     } catch (erreur) {
-      if (erreur.statut === 413) return envoyer(res, 413, pageErreur(413, 'Saisie trop longue', 'Le formulaire dépasse la taille permise.'));
+      if (erreur.statut === 413) return envoyer(res, 413, pageErreur('Saisie trop longue', 'Le formulaire dépasse la taille permise.'), { Connection: 'close' });
       console.error(`[patrimoine] ${req.method} ${req.url} : ${erreur.stack ?? erreur}`);
-      return envoyer(res, 500, pageErreur(500, 'Erreur interne', 'L\'opération a échoué ; rien n\'a été enregistré. Le détail est dans le terminal du serveur.'));
+      return envoyer(res, 500, pageErreur('Erreur interne', 'L\'opération a échoué ; rien n\'a été enregistré. Le détail est dans le terminal du serveur.'));
     }
   };
 }

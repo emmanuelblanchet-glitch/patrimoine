@@ -6,7 +6,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -65,6 +65,13 @@ test('GET / répond 200 avec le bilan, et les en-têtes de sécurité', async ()
   assert.match(r.corps, /Patrimoine net/);
   assert.match(r.entetes['content-security-policy'], /default-src 'none'/);
   assert.equal(r.entetes['x-content-type-options'], 'nosniff');
+  // « no-referrer » ferait envoyer « Origin: null » sur nos propres formulaires.
+  assert.equal(r.entetes['referrer-policy'], 'same-origin');
+});
+
+test('une écriture avec « Origin: null » est refusée (403)', async () => {
+  const r = await requete({ methode: 'POST', chemin: '/enveloppes', entetes: { Origin: 'null' }, corps: formulaire({ type: 'livret', libelle: 'Origine nulle' }) });
+  assert.equal(r.statut, 403);
 });
 
 test('la feuille de style est servie depuis public/', async () => {
@@ -160,8 +167,10 @@ test('une méthode autre que GET/HEAD/POST répond 405', async () => {
 });
 
 test('un corps de plus de 64 Ko répond 413', async () => {
-  const r = await requete({ methode: 'POST', chemin: '/enveloppes', entetes: origine(), corps: formulaire({ type: 'livret', libelle: 'x'.repeat(70 * 1024) }) }).catch((e) => ({ statut: 'coupé', e }));
-  assert.ok(r.statut === 413 || r.statut === 'coupé', `statut ${r.statut}`);
+  const r = await requete({ methode: 'POST', chemin: '/enveloppes', entetes: origine(), corps: formulaire({ type: 'livret', libelle: 'x'.repeat(70 * 1024) }) });
+  assert.equal(r.statut, 413);
+  assert.match(r.corps, /Saisie trop longue/);
+  assert.equal((await requete()).statut, 200, 'le serveur survit');
 });
 
 // ——— Configuration : la base ne vit jamais dans le dépôt ———————————————
@@ -175,6 +184,23 @@ test('une base dans le dépôt est refusée, quel que soit le détour du chemin'
     const v = cheminBaseAutorise(chemin);
     assert.equal(v.ok, false, chemin);
     assert.match(v.motif, /ne peut pas vivre dans le dépôt/);
+  }
+});
+
+test('la garde ne se contourne ni par la casse ni par un lien symbolique', () => {
+  // Le disque du Mac ignore la casse : /…/PATRIMOINE/x.db EST le dépôt.
+  const enMajuscules = join(RACINE_DEPOT.toUpperCase(), 'piege.db');
+  assert.match(cheminBaseAutorise(enMajuscules).motif ?? '', /ne peut pas vivre dans le dépôt/, enMajuscules);
+
+  const dossier = mkdtempSync(join(tmpdir(), 'patrimoine-lien-'));
+  try {
+    const lien = join(dossier, 'base.db');
+    symlinkSync(join(RACINE_DEPOT, 'piege.db'), lien);
+    const v = cheminBaseAutorise(lien);
+    assert.equal(v.ok, false);
+    assert.match(v.motif, /lien symbolique/);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
   }
 });
 

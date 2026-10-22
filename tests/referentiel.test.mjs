@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { appliquerMigrations } from '../lib/schema.mjs';
 import {
   creerEnveloppe, creerActif, creerPassif, ajouterValorisation, lireEtat,
-  ErreurSaisie, TYPES_ENVELOPPE, NATURES_ACTIF,
+  ErreurSaisie, TYPES_ENVELOPPE, NATURES_ACTIF, TYPES_PASSIF, STATUTS,
 } from '../lib/referentiel.mjs';
 import { baseJetable } from './aide.mjs';
 
@@ -111,4 +111,31 @@ test('chaque type d\'enveloppe et chaque nature d\'actif du code est accepté pa
   const { enveloppes, actifs } = lireEtat(base);
   assert.equal(enveloppes.length, TYPES_ENVELOPPE.length);
   assert.equal(actifs.length, TYPES_ENVELOPPE.length * NATURES_ACTIF.length);
+}));
+
+test('chaque type de crédit et chaque statut du code est accepté par la base', () => avecBase((base) => {
+  const { actifId } = bienAvecCredit(base);
+  for (const type of TYPES_PASSIF) {
+    const passifId = creerPassif(base, { actifId, libelle: type, type });
+    for (const statut of STATUTS) {
+      ajouterValorisation(base, { cible: { passifId }, date: '2026-10-01', valeurCentimes: 1, source: 'test', statut });
+    }
+  }
+  assert.equal(lireEtat(base).valorisations.length, TYPES_PASSIF.length * STATUTS.length);
+}));
+
+test('une date qui n\'existe pas au calendrier est refusée par le référentiel', () => avecBase((base) => {
+  const { actifId } = bienAvecCredit(base);
+  const motifs = motifsDe(() => ajouterValorisation(base, { cible: { actifId }, date: '2026-02-30', valeurCentimes: 1, source: 'x', statut: 'fait' }));
+  assert.ok(motifs.some((m) => m.startsWith('date obligatoire')), JSON.stringify(motifs));
+  const motifsActif = motifsDe(() => creerActif(base, { enveloppeId: 1, nature: 'bien', libelle: 'X', dateAcquisition: '2025-13-01' }));
+  assert.ok(motifsActif.some((m) => m.startsWith('date d\'acquisition')), JSON.stringify(motifsActif));
+}));
+
+test('garde-fou 8 : une transaction ne se modifie ni ne se supprime, par aucun chemin', () => avecBase((base) => {
+  const { actifId } = bienAvecCredit(base);
+  base.prepare("INSERT INTO transactions (date, actif_id, type, montant_centimes) VALUES ('2026-10-01', ?, 'loyer', 50000)").run(actifId);
+  assert.throws(() => base.prepare('UPDATE transactions SET montant_centimes = 1').run(), /transaction immuable/);
+  assert.throws(() => base.prepare('DELETE FROM transactions').run(), /transaction immuable/);
+  assert.equal(base.prepare('SELECT montant_centimes AS m FROM transactions').get().m, 50000);
 }));

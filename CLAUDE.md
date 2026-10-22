@@ -54,7 +54,8 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 - `tests/` — `node:test`, zéro dépendance ; `tests/aide.mjs` donne une base
   jetable par run.
 - `docs/adr/` décisions fondatrices · `CONTEXT.md` glossaire ·
-  `docs/cadrage-lot-0.md` résumé du cadrage · `docs/schemas/` fiche
+  `docs/cadrage-lot-0.md` résumé du cadrage général · `docs/lots/` cadrage
+  court de chaque lot (référence de l'axe Conformité) · `docs/schemas/` fiche
   technico-fonctionnelle (naît au premier lot livré, série DOC-SCHEMAS-01).
 - `.verrous` / `.supprimes` — déclarations VERROU-AGENT-01.
 - `.mcp.json` (local, ignoré) — cerveau `graphiti-patrimoine`.

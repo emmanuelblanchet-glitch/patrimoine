@@ -43,6 +43,12 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
   n'a pas de solde à la date : l'actif sort du total, la dette y reste.
 - **Non valorisé** : un actif sans aucune valorisation à la date du bilan.
   Il est signalé et exclu de la valeur, jamais compté à zéro en silence.
+  Pour un crédit, on dit **sans solde**.
+- **Dette sans bien** : le crédit d'un bien qui n'est pas au bilan à la date
+  (cédé, ou pas encore acquis) et qui garde un solde non nul. Il reste
+  compté, signalé, et rend le bilan incomplet.
+- **Date de cession** : la date à laquelle un actif sort du patrimoine
+  (champ `date_cloture`). Il n'apparaît plus au bilan à partir de ce jour.
 - **Cash-flow d'un bien** : loyers − charges − crédit − impôt estimé, par
   mois.
 
