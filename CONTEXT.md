@@ -35,7 +35,20 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
   mesure du risque (cadrage § 06). L'immobilier se mesure par scénarios, la
   poche financière par statistiques, et jamais l'un avec les méthodes de
   l'autre.
-- **Bilan net** : actif − passif, à la quote-part, par bien et global.
+- **Solde d'un passif** : son capital restant dû à une date. Au lot 0, il
+  est saisi depuis le relevé de prêt comme une **valorisation** du passif ;
+  au lot 1, il se calcule depuis l'échéancier.
+- **Bilan net** : actif − passif, à la quote-part, par bien et global. Un
+  bilan est **incomplet** quand un actif n'a pas de valeur ou qu'un crédit
+  n'a pas de solde à la date : l'actif sort du total, la dette y reste.
+- **Non valorisé** : un actif sans aucune valorisation à la date du bilan.
+  Il est signalé et exclu de la valeur, jamais compté à zéro en silence.
+  Pour un crédit, on dit **sans solde**.
+- **Dette sans bien** : le crédit d'un bien qui n'est pas au bilan à la date
+  (cédé, ou pas encore acquis) et qui garde un solde non nul. Il reste
+  compté, signalé, et rend le bilan incomplet.
+- **Date de cession** : la date à laquelle un actif sort du patrimoine
+  (champ `date_cloture`). Il n'apparaît plus au bilan à partir de ce jour.
 - **Cash-flow d'un bien** : loyers − charges − crédit − impôt estimé, par
   mois.
 

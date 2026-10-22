@@ -37,15 +37,25 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 
 ## Carte
 
-- `lib/` — moteurs purs, sans accès réseau (échéanciers, bilan à quote-part,
-  fiscalité, performance, risque). `lib/base.mjs` ouvre la base.
+- `lib/` — moteurs purs, sans accès réseau. `lib/base.mjs` ouvre la base ;
+  `schema.mjs` migrations numérotées (une migration publiée ne se modifie
+  jamais) ; `referentiel.mjs` écriture/lecture validées (S6) ;
+  `bilan.mjs` bilan à quote-part en fractions exactes (S2) ;
+  `fraction.mjs`, `saisie.mjs` (lecture des montants, dates, quotes-parts).
+- `serveur/` — serveur local (Node `http`, 127.0.0.1 seulement, l'hôte
+  n'est pas réglable) : `config.mjs` refuse une base dans le dépôt ;
+  `application.mjs` gardes Host/Origin, routes, statiques ; `pages.mjs`
+  HTML échappé ; `formulaires.mjs` ; `demarrer.mjs` point d'entrée.
+- `public/` — seuls fichiers statiques servis (à plat, extensions
+  allowlistées).
 - `scripts/valider.mjs` — validateur d'état ; `.githooks/pre-commit` = **le**
   gate bloquant (la protection de branche GitHub n'est pas appliquée sur les
   dépôts privés du plan, constat jarvis 12/08/2026).
 - `tests/` — `node:test`, zéro dépendance ; `tests/aide.mjs` donne une base
   jetable par run.
 - `docs/adr/` décisions fondatrices · `CONTEXT.md` glossaire ·
-  `docs/cadrage-lot-0.md` résumé du cadrage · `docs/schemas/` fiche
+  `docs/cadrage-lot-0.md` résumé du cadrage général · `docs/lots/` cadrage
+  court de chaque lot (référence de l'axe Conformité) · `docs/schemas/` fiche
   technico-fonctionnelle (naît au premier lot livré, série DOC-SCHEMAS-01).
 - `.verrous` / `.supprimes` — déclarations VERROU-AGENT-01.
 - `.mcp.json` (local, ignoré) — cerveau `graphiti-patrimoine`.
@@ -53,9 +63,19 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 ## Environnement de test
 
 Base jetable par run dans le dossier temporaire (`tests/aide.mjs`), aucune
-configuration requise : `npm test` ou `node --test`. La base réelle n'est
-jointe que par l'application, via `PATRIMOINE_DB`, à partir du lot 3 ; aucun
-test ne lit cette variable.
+configuration requise : `npm test` ou `node --test`. Aucun test ne lit
+`PATRIMOINE_DB` pour ouvrir une base ; la fumée du serveur démarre sur une
+base jetable et un port libre.
+
+## Lancer l'outil
+
+```sh
+mkdir -p ~/Patrimoine
+PATRIMOINE_DB=~/Patrimoine/patrimoine.db npm run serveur   # http://127.0.0.1:8710/
+```
+
+`PATRIMOINE_PORT` change le port. La base est créée et migrée au premier
+démarrage ; un chemin situé dans le dépôt est refusé.
 
 ## Routine
 

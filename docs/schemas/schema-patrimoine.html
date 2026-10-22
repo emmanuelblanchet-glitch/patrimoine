@@ -1,0 +1,201 @@
+<title>Patrimoine, fiche technico-fonctionnelle</title>
+<style>
+  /* Fiche technico-fonctionnelle : briques et flèches, lecture en une page. Photo de l'état courant, jamais un journal. */
+  :root {
+    --ground: #F6F6F8; --surface: #FFFFFF; --ink: #171A22; --ink-soft: #5B6170;
+    --rule: #DEE0E7; --rule-firm: #C3C7D3; --accent: #3B4F7A; --accent-bg: #E8ECF5;
+    --garde: #8F5A12; --garde-bg: #F8EEDC; --hors: #6B7280;
+    --serif: "Spectral", Georgia, "Times New Roman", serif;
+    --sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #111318; --surface: #181B22; --ink: #E7E9EF; --ink-soft: #9CA3B4; --rule: #2A2F3B; --rule-firm: #3C4352;
+      --accent: #9DB1E0; --accent-bg: #1F2840; --garde: #E0A858; --garde-bg: #30261A; --hors: #8B93A3; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #111318; --surface: #181B22; --ink: #E7E9EF; --ink-soft: #9CA3B4; --rule: #2A2F3B; --rule-firm: #3C4352;
+    --accent: #9DB1E0; --accent-bg: #1F2840; --garde: #E0A858; --garde-bg: #30261A; --hors: #8B93A3; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; }
+  .page { max-width: 960px; margin: 0 auto; padding-block: 28px 72px; padding-inline: 20px; }
+  .eyebrow { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 2rem; line-height: 1.15; margin: 6px 0 4px; text-wrap: balance; }
+  .sub { color: var(--ink-soft); max-width: 68ch; }
+  h2 { font-family: var(--serif); font-size: 1.35rem; margin: 40px 0 10px; padding-top: 12px; border-top: 1px solid var(--rule-firm); }
+  p { max-width: 68ch; }
+
+  .flux { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; }
+  .fleche { align-self: center; color: var(--accent); font-size: 1.6rem; text-align: center; }
+  .brique { background: var(--surface); border: 1px solid var(--rule-firm); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+  .brique h3 { margin: 0 0 4px; font-size: 1rem; font-family: var(--sans); }
+  .brique .ou { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); display: block; margin-bottom: 6px; }
+  .brique ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+  .brique li { margin: 2px 0; }
+  .brique.garde { border-color: var(--garde); background: var(--garde-bg); }
+  .brique.garde h3 { color: var(--garde); }
+  .brique.hors { border-style: dashed; color: var(--hors); }
+  .brique.hors h3 { color: var(--hors); }
+  @media (max-width: 720px) { .flux { grid-template-columns: 1fr; } .fleche { transform: rotate(90deg); } }
+
+  .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+  th { font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); background: var(--ground); }
+  tr:last-child td { border-bottom: 0; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--accent-bg); padding: 1px 5px; border-radius: 3px; }
+  .legende { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; }
+  .legende span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--rule-firm); background: var(--surface); }
+  .legende .g::before { border-color: var(--garde); background: var(--garde-bg); }
+  .legende .h::before { border-style: dashed; }
+</style>
+
+<div class="page">
+  <div class="eyebrow">Fiche technico-fonctionnelle · activité Patrimoine · usage personnel</div>
+  <h1>Patrimoine, bilan net à la quote-part</h1>
+  <p class="sub">Ce que fait l'outil aujourd'hui, de quelles briques il est fait, et où sont ses garde-fous. Pour un lecteur qui ne connaît pas le code. Aucun chiffre personnel n'y figure : les données vivent dans la base, hors du dépôt.</p>
+
+  <h2>Ce que l'utilisateur fait</h2>
+  <div class="flux">
+    <div class="brique">
+      <h3>Il décrit son patrimoine</h3>
+      <span class="ou">pages Enveloppes · Actifs · Crédits</span>
+      <ul>
+        <li>une <strong>enveloppe</strong> par contenant (bien en direct, PEE, livret, parts de société…), avec sa <strong>quote-part</strong> en fraction exacte (1/2 pour une indivision)</li>
+        <li>les <strong>actifs</strong> qu'elle contient, saisis à 100 %</li>
+        <li>les <strong>crédits</strong> qui financent un actif</li>
+      </ul>
+    </div>
+    <div class="fleche">→</div>
+    <div class="brique">
+      <h3>Il saisit des valeurs datées</h3>
+      <span class="ou">page Valorisations</span>
+      <ul>
+        <li>la valeur d'un actif, ou le <strong>capital restant dû</strong> d'un crédit, copié du relevé</li>
+        <li>toujours avec une <strong>source</strong> et un <strong>statut</strong> : fait ou estimation</li>
+        <li>sans source ni statut, la saisie est refusée avec le motif</li>
+      </ul>
+    </div>
+    <div class="fleche">→</div>
+    <div class="brique">
+      <h3>Il lit son bilan</h3>
+      <span class="ou">page Bilan, à une date au choix</span>
+      <ul>
+        <li>valeur − dette = <strong>net</strong>, par ligne, par enveloppe, global, à sa quote-part</li>
+        <li>chaque ligne porte la date, l'âge et la source de sa valeur</li>
+        <li>un actif sans valeur est signalé et exclu ; une dette n'est jamais masquée ; le bilan se dit <strong>incomplet</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>De quoi c'est fait</h2>
+  <div class="flux">
+    <div class="brique">
+      <h3>Navigateur du Mac</h3>
+      <span class="ou">pages HTML rendues par le serveur</span>
+      <ul>
+        <li>aucun script côté client, une feuille de style</li>
+        <li>formulaires classiques, réponse 303 puis réaffichage</li>
+      </ul>
+    </div>
+    <div class="fleche">↔</div>
+    <div class="brique">
+      <h3>Serveur local</h3>
+      <span class="ou">Node natif, <code>serveur/</code></span>
+      <ul>
+        <li>écoute sur <code>127.0.0.1</code> seulement, l'hôte n'est pas réglable</li>
+        <li>lit les formulaires (<code>saisie.mjs</code>), appelle le référentiel, rend les pages</li>
+        <li>sert <code>public/</code> et rien d'autre</li>
+      </ul>
+    </div>
+    <div class="fleche">↔</div>
+    <div class="brique">
+      <h3>Base SQLite</h3>
+      <span class="ou"><code>PATRIMOINE_DB</code>, hors du dépôt</span>
+      <ul>
+        <li>tables : profil, enveloppe, actif, passif, valorisation, transactions</li>
+        <li>migrations numérotées, rejouables, figées une fois publiées</li>
+        <li>contraintes en base : source et statut obligatoires, transactions immuables</li>
+      </ul>
+    </div>
+  </div>
+  <div class="grille" style="margin-top:12px">
+    <div class="brique">
+      <h3>Moteurs purs</h3>
+      <span class="ou"><code>lib/</code>, sans accès réseau</span>
+      <ul>
+        <li><code>bilan.mjs</code> : fractions exactes, un seul arrondi au centime</li>
+        <li><code>referentiel.mjs</code> : validation puis écriture, lecture de l'état</li>
+        <li><code>fraction.mjs</code>, <code>saisie.mjs</code>, <code>schema.mjs</code></li>
+      </ul>
+    </div>
+    <div class="brique">
+      <h3>Harnais</h3>
+      <span class="ou"><code>node --test</code>, zéro dépendance</span>
+      <ul>
+        <li>base jetable par run dans le dossier temporaire</li>
+        <li>joué au pre-commit et en CI sur chaque PR</li>
+      </ul>
+    </div>
+    <div class="brique hors">
+      <h3>Pas encore</h3>
+      <span class="ou">lots suivants</span>
+      <ul>
+        <li>échéanciers et calendrier des engagements</li>
+        <li>loyers, charges, cash-flow</li>
+        <li>fiscalité et simulateur de sortie</li>
+        <li>accès iPhone, mot de passe, VPS, sauvegarde chiffrée</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Garde-fous</h2>
+  <div class="grille">
+    <div class="brique garde">
+      <h3>Jamais de données dans le dépôt</h3>
+      <ul>
+        <li>le serveur refuse de démarrer si la base est dans le dépôt, même par un chemin en majuscules ou un lien symbolique</li>
+        <li>le validateur refuse tout fichier de base, d'environnement, de secret ou d'IBAN suivi par git</li>
+      </ul>
+    </div>
+    <div class="brique garde">
+      <h3>Les tests n'atteignent jamais la base réelle</h3>
+      <ul>
+        <li>en mode test, <code>lib/base.mjs</code> refuse tout chemin hors du dossier temporaire du système</li>
+        <li>fichier protégé par <code>.verrous</code> : non modifiable en session</li>
+      </ul>
+    </div>
+    <div class="brique garde">
+      <h3>Une écriture ne vient que d'une page de l'outil</h3>
+      <ul>
+        <li>en-tête <code>Host</code> local exigé (rebond DNS)</li>
+        <li>en-tête <code>Origin</code> égal au serveur exigé sur tout POST (formulaire tiers)</li>
+        <li>corps limité à 64 Ko, méthodes limitées à GET, HEAD, POST</li>
+      </ul>
+    </div>
+    <div class="brique garde">
+      <h3>Chaque nombre dit d'où il vient</h3>
+      <ul>
+        <li>source et statut obligatoires, vérifiés par le code et par la base</li>
+        <li>le statut « estimation » remonte à l'enveloppe et au global</li>
+        <li>tout texte saisi est échappé à l'affichage</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Points d'attention</h2>
+  <div class="tablewrap"><table>
+    <tr><th>État</th><th>Conséquence</th></tr>
+    <tr><td>Pas d'authentification</td><td>Le serveur n'est joignable que depuis le Mac ; toute personne devant le Mac peut lire et écrire. Mot de passe et réseau privé au lot 3.</td></tr>
+    <tr><td>Capital restant dû saisi à la main</td><td>Il vieillit entre deux relevés ; l'âge affiché le rappelle. Le calcul depuis l'échéancier vient au lot 1.</td></tr>
+    <tr><td>Pas de modification ni de suppression</td><td>Une saisie fausse se corrige par une nouvelle valorisation à la même date (la dernière saisie fait foi) ; les transactions se corrigent par contre-écriture.</td></tr>
+    <tr><td>Le PEE est une ligne globale</td><td>Pas de détail par fonds ni d'import de relevé avant la V1.</td></tr>
+    <tr><td>Une sauvegarde est un fichier à part</td><td>Rien ne sauvegarde la base automatiquement avant le lot 3.</td></tr>
+  </table></div>
+
+  <div class="legende"><span>brique en service</span><span class="g">garde-fou</span><span class="h">pas encore construit</span></div>
+</div>
