@@ -130,6 +130,20 @@ test('S-L1-2 — un plancher plus serré que la cible est enregistré, mais l\'a
   assert.equal(lireObjectif(jetable.base).rendementEstimePb, 500, 'rendement vide : 5 % par défaut');
 });
 
+test('revenir au point de départ pour déclarer une assurance-vie ouverte crée sa ligne, sans toucher au reste', async () => {
+  const page = await requete({ chemin: '/depart' });
+  assert.match(page.corps, /une assurance-vie/, 'la case reste proposée tant que l\'enveloppe n\'existe pas');
+  assert.ok(!/name="a_pea"/.test(page.corps), 'le PEA existe déjà : plus de case');
+  const r = await post('/depart', {
+    reserve: '25 000', matelas: '15 000', epargne_mensuelle: '500', horizon: '10', perte_max: '30',
+    immobilier: '300 000', immobilier_date: '2026-10-01', immobilier_source: 'à la louche', a_av: 'oui',
+  });
+  assert.equal(r.statut, 303);
+  const etat = lireEtat(jetable.base);
+  assert.deepEqual(etat.enveloppes.map((e) => e.type).sort(), ['av', 'livret', 'pea', 'pee']);
+  assert.equal(etat.actifs.filter((a) => a.libelle === 'Réserve').length, 1, 'aucun doublon');
+});
+
 test('la page Allocation dit la cible, l\'enveloppe de chaque part et pourquoi, avec la mention', async () => {
   const r = await requete({ chemin: '/allocation' });
   assert.equal(r.statut, 200);
