@@ -29,7 +29,7 @@ export const NOM_ENVELOPPE_A_OUVRIR = { pea: 'un PEA', av: 'une assurance-vie' }
 export const quotePart = (qp) => (qp.num === qp.den ? '100 %' : `${qp.num}/${qp.den}`);
 export const tag = (classe, texte) => `<span class="tag ${classe}">${echapper(texte)}</span>`;
 export const tagStatut = (statut) => (statut === 'fait' ? tag('fait', 'fait') : tag('estim', 'estimation'));
-export const age = (jours) => (jours === 0 ? 'du jour' : `il y a ${jours} j`);
+const age = (jours) => (jours === 0 ? 'du jour' : `il y a ${jours} j`);
 export const dateEtAge = (v) => `${echapper(v.date)}, ${age(v.ageJours)}`;
 
 export function options(valeurs, libelles, choisie) {

@@ -115,6 +115,31 @@ Lignes. Aucune règle bloquante au lot 2 : il n'y a pas de vente.
 - La page « Versement » devient « Mouvement » : j'ai acheté des parts
   (lignes cotées), j'ai versé (lignes sans cours).
 
+### Précisé après la revue (2a)
+
+- Le **prix de la séance en cours** n'est pas une clôture : le collecteur
+  l'écarte (`currentTradingPeriod`), sinon il serait enregistré comme
+  clôture du jour et figé à jamais (un cours écrit ne se réécrit pas).
+- Une ligne cotée dans une **autre devise que l'euro** est refusée au
+  rafraîchissement, et la page le dit ; sans ce refus, un ETF de Londres
+  s'additionnerait en pence.
+- Le **stock d'une ligne alimentée** au moment où l'outil l'a prise en
+  charge (sa valorisation « point de départ ») entre dans le TRI comme un
+  flux à sa date ; sinon, un versement sur le livret donne un rendement
+  absurde.
+- Un **PEA enregistré sans date** reçoit sa date depuis le point de départ
+  (champ proposé tant qu'elle manque), sans créer de doublon.
+- Un **achat erroné s'annule** depuis Mouvement : contre-écriture
+  `annulation_achat` (parts et montant en négatif, référence à l'achat),
+  une seule fois par achat ; l'achat annulé disparaît de la liste et de la
+  position, jamais de la base. Un achat en parts ne se saisit que sur une
+  ligne cotée ; une ligne sans cours reçoit un versement.
+- Le symbole est **contraint en base** (forme, unicité par enveloppe) ; la
+  création d'une ligne cotée est une opération du domaine
+  (`creerLigneCotee`), plus une suite d'écritures dans le routeur.
+- Les parts se lisent en chiffres (`lireParts`, millionièmes) et le coût
+  d'un achat se calcule en fraction exacte : jamais de flottant.
+
 ## Seams testés (bloquants, jeux synthétiques, jamais le réseau)
 
 | Seam | Comportement garanti |

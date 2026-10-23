@@ -2,18 +2,18 @@
 // allocation, lignes, mouvements, réglages.
 
 import {
-  echapper, gabarit, blocErreurs, blocAvertissements, champ, choix, case_, options, tag, tagStatut, dateEtAge, dateFr, age,
+  echapper, gabarit, blocErreurs, blocAvertissements, champ, choix, case_, options, tag, tagStatut, dateEtAge, dateFr,
   LIBELLES_TYPE, LIBELLES_CLASSE_LIGNE, NOM_ENVELOPPE_A_OUVRIR,
 } from './gabarit.mjs';
-import { LIBELLES_CLASSE, CLASSES_LIGNE } from '../lib/allocation.mjs';
-import { TYPES_FINANCIERS } from '../lib/poche.mjs';
+import { LIBELLES_CLASSE, CLASSES, CLASSES_LIGNE } from '../lib/allocation.mjs';
+import { TYPES_FINANCIERS, RECUL_TRI_JOURS } from '../lib/poche.mjs';
 import { MENTION } from '../lib/explication.mjs';
 import { euros, eurosRonds, pct } from '../lib/format.mjs';
 
 // ——— Ma poche (accueil, lot 1) ————————————————————————————————————————
 
 /** « 5 ans le … » d'une enveloppe PEA datée, ou null. */
-export function dateCinqAns(enveloppe) {
+function dateCinqAns(enveloppe) {
   if (enveloppe?.type !== 'pea' || !enveloppe.dateOuverture) return null;
   const [a, m, j] = enveloppe.dateOuverture.split('-').map(Number);
   return `${a + 5}-${String(m).padStart(2, '0')}-${String(j).padStart(2, '0')}`;
@@ -75,7 +75,7 @@ export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) 
       </tr>`).join('')
     : '<tr><td colspan="4" class="vide">Aucune ligne encore. <a href="/lignes">Classer ou créer des lignes</a>.</td></tr>';
   const rendementHtml = rendement.pb === null
-    ? `<span class="chiffre petit">—</span><span class="delta">${rendement.reculJours === 0 ? 'aucun versement ou achat saisi' : rendement.reculJours < 30 ? `${rendement.reculJours} jour${rendement.reculJours > 1 ? 's' : ''} de recul : trop tôt pour le dire` : 'calcul impossible sur ces flux'}</span>`
+    ? `<span class="chiffre petit">—</span><span class="delta">${rendement.reculJours === 0 ? 'aucun versement ou achat saisi' : rendement.reculJours < RECUL_TRI_JOURS ? `${rendement.reculJours} jour${rendement.reculJours > 1 ? 's' : ''} de recul : trop tôt pour le dire` : 'calcul impossible sur ces flux'}</span>`
     : `<span class="chiffre petit">${signe(rendement.pb)}${pct(rendement.pb)} <small>/ an</small></span><span class="delta">TRI de tes versements et achats${rendement.statut === 'estimation' ? ` ${tag('estim', 'estimation')} <small>moins d'un an de recul</small>` : ''}</span>`;
 
   return gabarit('Ma poche', '/', `
@@ -142,6 +142,10 @@ export function pageDepart({ objectif, enveloppes }, { valeurs = {}, motifs = []
   } : {};
   const types = new Set((enveloppes ?? []).map((e) => e.type));
   const dejaPee = types.has('pee');
+  const peaSansDate = enveloppes.find((e) => e.type === 'pea' && !e.dateOuverture);
+  const blocPea = types.has('pea')
+    ? peaSansDate ? `<input type="hidden" name="a_pea" value="oui">${champ('pea_date', 'Date d\'ouverture de ton PEA', v, { type: 'date', aide: 'il est enregistré, mais sans date : ses avantages fiscaux sont acquis cinq ans après' })}` : ''
+    : `${case_('a_pea', 'un PEA', v)}${champ('pea_date', 'Date d\'ouverture du PEA', v, { type: 'date', aide: 'ses avantages fiscaux sont acquis cinq ans après' })}`;
   return gabarit('Point de départ', '/depart', `
 <h1>${objectif ? 'Mon point de départ' : 'Six questions pour démarrer'}</h1>
 <p class="sous-titre">Réponds à la louche, en euros. Tu pourras revenir ici quand tu veux. ${objectif ? '' : 'À la fin, l\'outil crée tes premières lignes.'}</p>
@@ -152,7 +156,7 @@ ${blocAvertissements('À savoir', avertissements)}
   ${champ('reserve', '1. Combien as-tu de côté, disponible tout de suite ?', v, { requis: true, question: true, aide: 'livrets et comptes, hors PEE' })}
   ${champ('matelas', 'Dont combien veux-tu garder en matelas de précaution ?', v, { requis: true, aide: 'ce qui reste sur le livret quoi qu\'il arrive' })}
   ${champ('epargne_mensuelle', '2. Combien veux-tu placer chaque mois ?', v, { requis: true, question: true })}
-  ${dejaPee ? '<p class="aide">3. Ton PEE est déjà enregistré comme ligne ; sa valeur se met à jour dans <a href="/versement">Versement</a>.</p>' : `${champ('pee', '3. Qu\'y a-t-il sur ton PEE ?', v, { question: true, aide: '0 si tu n\'en as pas' })}
+  ${dejaPee ? '<p class="aide">3. Ton PEE est déjà enregistré comme ligne ; sa valeur se met à jour dans <a href="/versement">Mouvement</a>.</p>' : `${champ('pee', '3. Qu\'y a-t-il sur ton PEE ?', v, { question: true, aide: '0 si tu n\'en as pas' })}
   ${champ('pee_part_actions', 'Quelle part du PEE est en actions ? (%)', v, { aide: 'si tu ne sais pas, laisse vide : 50 %' })}`}
   ${champ('horizon', '4. Dans combien d\'années comptes-tu te servir de cet argent ?', v, { requis: true, question: true, aide: 'en années' })}
   ${champ('perte_max', '5. Quelle perte maximale accepterais-tu de voir, sans vendre ? (%)', v, { requis: true, question: true, aide: 'sur l\'ensemble de la poche ; 30 par défaut' })}
@@ -160,7 +164,7 @@ ${blocAvertissements('À savoir', avertissements)}
   ${champ('immobilier_date', 'Date de cette estimation', v, { type: 'date', requis: true })}
   ${champ('immobilier_source', 'D\'où vient-elle ?', v, { requis: true, aide: 'agence, annonces, à la louche…' })}
   ${champ('rendement', 'Rendement annuel estimé de la poche (%)', v, { aide: 'sert à la trajectoire seulement ; 5 par défaut, c\'est une estimation' })}
-  ${types.has('pea') && types.has('av') ? '' : `<div><span class="question">Ce que tu as déjà ouvert</span>${types.has('pea') ? '' : `${case_('a_pea', 'un PEA', v)}${champ('pea_date', 'Date d\'ouverture du PEA', v, { type: 'date', aide: 'ses avantages fiscaux sont acquis cinq ans après' })}`}${types.has('av') ? '' : case_('a_av', 'une assurance-vie', v)}<small>Coche seulement ce qui existe ; l'outil te dira quoi ouvrir sinon. Tu peux revenir cocher ici le jour où tu l'ouvres.</small></div>`}
+  ${!blocPea && types.has('av') ? '' : `<div><span class="question">Ce que tu as déjà ouvert</span>${blocPea}${types.has('av') ? '' : case_('a_av', 'une assurance-vie', v)}<small>Coche seulement ce qui existe ; l'outil te dira quoi ouvrir sinon. Tu peux revenir cocher ici le jour où tu l'ouvres.</small></div>`}
   <button>Enregistrer</button>
 </form>`);
 }
@@ -225,7 +229,7 @@ export function pageLignes({ etat, poche }, { valeurs = {}, motifs = [], recherc
         <td>${echapper(r.place ?? '')}</td>
         <td><form method="post" action="/lignes/ajouter" class="date"><input type="hidden" name="symbole" value="${echapper(r.symbole)}"><input type="hidden" name="nom" value="${echapper(r.nom)}"><input type="hidden" name="nature" value="${r.type}">
           <select name="enveloppe_id" aria-label="enveloppe">${choixEnveloppesCotees}</select>
-          <select name="classe" aria-label="classe">${options(['actions_monde', 'sans_risque', 'mixte'], LIBELLES_CLASSE_LIGNE, 'actions_monde')}</select>
+          <select name="classe" aria-label="classe">${options(CLASSES, LIBELLES_CLASSE, 'actions_monde')}</select>
           <button>Ajouter</button></form></td><td></td></tr>`).join('')}</tbody></table></div>`
     : recherche ? `<p class="vide">${recherche.motif ? echapper(recherche.motif) : `Rien trouvé pour « ${echapper(recherche.q)} ». Essaie le code ISIN (sur la fiche de l\'ETF) ou le symbole de cotation.`}</p>` : '';
   const pea = etat.enveloppes.find((e) => e.type === 'pea');
@@ -258,40 +262,51 @@ ${candidats.length ? `<form method="post" action="/lignes" class="saisie">
 
 // ——— Versement ——————————————————————————————————————————————————————
 
-export function pageVersement({ poche, aujourdhui }, { valeurs = {}, motifs = [], formulaire = 'versement' } = {}) {
+export function pageVersement({ poche, aujourdhui, achats = [] }, { valeurs = {}, motifs = [], formulaire = 'versement' } = {}) {
   const nonCotees = poche.lignes.filter((l) => !l.symboleCours);
   const cotees = poche.lignes.filter((l) => l.symboleCours);
+  const nomLigne = new Map(poche.lignes.map((l) => [l.actifId, l.libelle]));
   const option = (l) => `<option value="${l.actifId}"${String(l.actifId) === valeurs.actif_id ? ' selected' : ''}>${echapper(l.libelle)} (${echapper(LIBELLES_TYPE[l.enveloppeType] ?? l.enveloppeType)})</option>`;
-  const choixLignes = nonCotees.map(option).join('');
-  const choixCotees = cotees.map(option).join('');
+  // Les valeurs retapées ne reviennent que dans le formulaire qui a échoué.
   const v = { date: aujourdhui, ...valeurs };
-  const erreursAchat = formulaire === 'achat' ? blocErreurs(motifs) : '';
-  const erreursVersement = formulaire === 'versement' ? blocErreurs(motifs) : '';
+  const vAchat = formulaire === 'achat' ? v : { date: aujourdhui };
+  const vVersement = formulaire === 'versement' ? v : { date: aujourdhui };
+  const erreurs = (nom) => (formulaire === nom ? blocErreurs(motifs) : '');
+  const lignesAchats = achats.map((a) => `<tr>
+      <td>${echapper(dateFr(a.date))}</td>
+      <td>${echapper(nomLigne.get(a.actifId) ?? '?')}<span class="sous">${a.partsMillioniemes / 1_000_000} parts${a.fraisCentimes ? `, ${euros(a.fraisCentimes)} de frais` : ''}</span></td>
+      <td class="num">${euros(a.montantCentimes)}</td>
+      <td><form method="post" action="/achat/annuler"><input type="hidden" name="achat_id" value="${a.id}"><button class="discret">Annuler</button></form></td>
+    </tr>`).join('');
   return gabarit('Mouvement', '/versement', `
 <h1>J'ai acheté, j'ai versé</h1>
 <p class="sous-titre">Une phrase, trois champs. Un achat de parts suit ensuite son cours tout seul ; un versement sur une ligne sans cours porte sa nouvelle valeur si tu la connais.</p>
 <section class="section" style="margin-top:0">
 <h2>J'ai acheté des parts</h2>
-${erreursAchat}
+${erreurs('achat')}
 ${cotees.length ? `<form method="post" action="/achat" class="saisie">
-  ${champ('parts', 'Nombre de parts', formulaire === 'achat' ? v : {}, { requis: true, aide: 'exemple : 12 ou 12,5' })}
-  ${champ('prix', 'Prix par part (€)', formulaire === 'achat' ? v : {}, { requis: true })}
-  ${choix('actif_id', 'Sur la ligne', choixCotees)}
-  ${champ('date', 'Le', formulaire === 'achat' ? v : { date: aujourdhui }, { type: 'date', requis: true })}
-  ${champ('frais', 'Frais de courtage (€)', formulaire === 'achat' ? v : {}, { aide: 'facultatif' })}
+  ${champ('parts', 'Nombre de parts', vAchat, { requis: true, aide: 'exemple : 12 ou 12,5' })}
+  ${champ('prix', 'Prix par part (€)', vAchat, { requis: true })}
+  ${choix('actif_id', 'Sur la ligne', cotees.map(option).join(''))}
+  ${champ('date', 'Le', vAchat, { type: 'date', requis: true })}
+  ${champ('frais', 'Frais de courtage (€)', vAchat, { aide: 'facultatif' })}
   <button>Enregistrer l'achat</button>
 </form>` : '<p class="vide">Aucune ligne cotée : <a href="/lignes">ajoute ton ETF</a> par son code.</p>'}
+${lignesAchats ? `<h3>Mes achats</h3>${erreurs('annulation')}<div class="table"><table>
+  <thead><tr><th>Le</th><th>Ligne</th><th class="num">Coût</th><th></th></tr></thead>
+  <tbody>${lignesAchats}</tbody>
+</table></div><p class="aide">Une erreur de saisie s'annule ; l'achat reste dans l'historique, barré par son annulation. Le rendement s'affiche après ${RECUL_TRI_JOURS} jours de recul.</p>` : ''}
 </section>
 <section class="section">
 <h2>J'ai versé</h2>
-${erreursVersement}
+${erreurs('versement')}
 ${nonCotees.length ? `<form method="post" action="/versement" class="saisie">
-  ${champ('montant', 'Montant (€)', v, { requis: true })}
-  ${choix('actif_id', 'Sur la ligne', choixLignes)}
-  ${champ('date', 'Le', v, { type: 'date', requis: true })}
-  ${choix('type', 'Nature', options(['versement', 'abondement'], { versement: 'Versement', abondement: 'Abondement (PEE)' }, valeurs.type))}
-  ${champ('nouvelle_valeur', 'Nouvelle valeur de la ligne (€)', v, { aide: 'facultatif : la valeur totale après ce versement' })}
-  ${champ('source', 'Source de cette valeur', v, { aide: 'relevé, cours du jour…' })}
+  ${champ('montant', 'Montant (€)', vVersement, { requis: true })}
+  ${choix('actif_id', 'Sur la ligne', nonCotees.map(option).join(''))}
+  ${champ('date', 'Le', vVersement, { type: 'date', requis: true })}
+  ${choix('type', 'Nature', options(['versement', 'abondement'], { versement: 'Versement', abondement: 'Abondement (PEE)' }, vVersement.type))}
+  ${champ('nouvelle_valeur', 'Nouvelle valeur de la ligne (€)', vVersement, { aide: 'facultatif : la valeur totale après ce versement' })}
+  ${champ('source', 'Source de cette valeur', vVersement, { aide: 'relevé, cours du jour…' })}
   <button>Enregistrer</button>
 </form>` : '<p class="vide">Aucune ligne sans cours. Réponds d\'abord au <a href="/depart">point de départ</a>.</p>'}
 </section>`);

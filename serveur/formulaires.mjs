@@ -2,7 +2,7 @@
 // champs tapés et rendent { donnees, motifs }. Le référentiel valide ensuite
 // les règles du domaine ; ici, on ne fait que lire.
 
-import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte } from '../lib/saisie.mjs';
+import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte, lireParts } from '../lib/saisie.mjs';
 import { PART_ACTIONS_PAR_DEFAUT_PB } from '../lib/allocation.mjs';
 
 function lecteur(champs) {
@@ -106,15 +106,10 @@ export function lireFormulaireVersement(champs) {
 /** « J'ai acheté N parts à P € le … » : parts en millionièmes, prix et frais en centimes. */
 export function lireFormulaireAchat(champs) {
   const { motifs, lire, texte } = lecteur(champs);
-  const partsTexte = String(champs.parts ?? '').replace(',', '.').trim();
-  let partsMillioniemes = null;
-  if (partsTexte === '') motifs.push('Parts : nombre obligatoire');
-  else if (!/^\d+(\.\d{1,6})?$/.test(partsTexte)) motifs.push(`Parts : nombre illisible : « ${champs.parts} » (exemple : 12 ou 12,5)`);
-  else partsMillioniemes = Math.round(Number(partsTexte) * 1_000_000);
   const donnees = {
     actifId: id(champs.actif_id),
     date: lire(lireDate, 'date', 'Date'),
-    partsMillioniemes,
+    partsMillioniemes: lire(lireParts, 'parts', 'Parts'),
     prixCentimes: lire(lireMontantFacultatif, 'prix', 'Prix par part'),
     fraisCentimes: lire(lireMontantFacultatif, 'frais', 'Frais'),
     note: texte('note'),
@@ -126,9 +121,14 @@ export function lireFormulaireAchat(champs) {
 export function lireFormulaireAjoutLigne(champs) {
   const { motifs, texte } = lecteur(champs);
   return {
-    donnees: { symbole: texte('symbole'), nom: texte('nom'), nature: champs.nature === 'action' ? 'action' : 'etf', enveloppeId: id(champs.enveloppe_id), classe: texte('classe') ?? 'actions_monde' },
+    donnees: { symbole: texte('symbole'), nom: texte('nom'), nature: texte('nature'), enveloppeId: id(champs.enveloppe_id), classe: texte('classe') },
     motifs,
   };
+}
+
+/** Annuler un achat erroné : son identifiant seul ; la date est celle du jour. */
+export function lireFormulaireAnnulation(champs) {
+  return { donnees: { transactionId: id(champs.achat_id) }, motifs: [] };
 }
 
 /** Classer une ligne existante : classe et, pour « mixte », part actions. */

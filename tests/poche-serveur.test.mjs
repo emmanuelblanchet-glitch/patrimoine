@@ -8,7 +8,7 @@ import { request } from 'node:http';
 import { demarrerServeur } from '../serveur/application.mjs';
 import { HOTE } from '../serveur/config.mjs';
 import { appliquerMigrations } from '../lib/schema.mjs';
-import { lireEtat, lireVersements } from '../lib/referentiel.mjs';
+import { lireEtat, lireFlux } from '../lib/referentiel.mjs';
 import { lireObjectif } from '../lib/objectif.mjs';
 import { baseJetable } from './aide.mjs';
 
@@ -134,7 +134,8 @@ test('S-L1-2 — un plancher plus serré que la cible est enregistré, mais l\'a
 test('revenir au point de départ pour déclarer une assurance-vie ouverte crée sa ligne, sans toucher au reste', async () => {
   const page = await requete({ chemin: '/depart' });
   assert.match(page.corps, /une assurance-vie/, 'la case reste proposée tant que l\'enveloppe n\'existe pas');
-  assert.ok(!/name="a_pea"/.test(page.corps), 'le PEA existe déjà : plus de case');
+  assert.ok(!/type="checkbox" name="a_pea"/.test(page.corps), 'le PEA existe déjà : plus de case');
+  assert.match(page.corps, /Date d'ouverture de ton PEA/, 'mais il n\'a pas de date : on la propose');
   const r = await post('/depart', {
     reserve: '25 000', matelas: '15 000', epargne_mensuelle: '500', horizon: '10', perte_max: '30',
     immobilier: '300 000', immobilier_date: '2026-10-01', immobilier_source: 'à la louche', a_av: 'oui',
@@ -176,9 +177,9 @@ test('un versement s\'enregistre comme transaction immuable, et sa nouvelle vale
   const etf = etat.actifs.find((a) => a.libelle === 'ETF actions monde');
   const r = await post('/versement', { montant: '500', actif_id: String(etf.id), date: '2026-10-23', type: 'versement', nouvelle_valeur: '500', source: 'ordre exécuté' });
   assert.equal(r.statut, 303);
-  const v = lireVersements(jetable.base);
+  const v = lireFlux(jetable.base);
   assert.equal(v.length, 1);
-  assert.equal(v[0].montantCentimes, 500_00);
+  assert.equal(v[0].centimes, 500_00);
   const accueil = normaliser((await requete()).corps);
   assert.match(accueil, /43 500 €/);
   await new Promise((r) => setTimeout(r, 20));

@@ -5,8 +5,8 @@
 import { recupererCours, chercher, SOURCE } from '../collecteurs/yahoo.mjs';
 import { enregistrerCours } from '../lib/cours.mjs';
 
-export const AGE_MAX_MS = 20 * 60 * 60 * 1000;
-export const RECUL_MS = 60 * 60 * 1000;
+const AGE_MAX_MS = 20 * 60 * 60 * 1000;
+const RECUL_MS = 60 * 60 * 1000;
 
 export function creerRafraichisseur({ base, fetchImpl = fetch, journal = console.error, maintenant = () => Date.now() }) {
   const enVol = new Set();
@@ -16,9 +16,12 @@ export function creerRafraichisseur({ base, fetchImpl = fetch, journal = console
     enVol.add(ligne.symboleCours);
     recupererCours(ligne.symboleCours, { fetchImpl })
       .then((r) => {
-        if (!r.ok) {
-          echecs.set(ligne.symboleCours, { motif: r.motif, prochainEssai: maintenant() + RECUL_MS });
-          journal(`[patrimoine] cours ${ligne.symboleCours} : ${r.motif}`);
+        // Les montants de la poche sont en euros : une ligne cotée dans une
+        // autre devise serait additionnée telle quelle (en pence, à Londres).
+        const motif = !r.ok ? r.motif : r.valeur.devise && r.valeur.devise !== 'EUR' ? `cotée en ${r.valeur.devise}, l'outil ne gère que l'euro` : null;
+        if (motif) {
+          echecs.set(ligne.symboleCours, { motif, prochainEssai: maintenant() + RECUL_MS });
+          journal(`[patrimoine] cours ${ligne.symboleCours} : ${motif}`);
           return;
         }
         enregistrerCours(base, ligne.actifId, r.valeur.cours, { source: SOURCE, releveLe: new Date(maintenant()).toISOString() });
@@ -37,14 +40,11 @@ export function creerRafraichisseur({ base, fetchImpl = fetch, journal = console
   return {
     /** Lance, sans attendre, le rafraîchissement des lignes cotées dont le cours est vieux. */
     rafraichirSiVieux(lignes, { forcer = false } = {}) {
-      let lances = 0;
       for (const l of lignes) {
         if (!l.symboleCours || enVol.has(l.symboleCours)) continue;
         if (!forcer && (!estVieux(l) || enRecul(l.symboleCours))) continue;
         lancer(l);
-        lances++;
       }
-      return lances;
     },
     /** Ce que la page peut dire de chaque symbole. */
     etat(symbole) {

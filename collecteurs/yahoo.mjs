@@ -6,9 +6,15 @@
 // Non officiel : peut casser sans préavis ; on refuse tout ce qui n'a pas
 // la forme attendue plutôt que d'enregistrer une valeur douteuse.
 
+import { SYMBOLE_VALIDE } from '../lib/saisie.mjs';
+
 const UA = 'Mozilla/5.0 (compatible; patrimoine-local)';
 const DELAI_MS = 15_000;
+const PERIODE = '1mo';
 export const SOURCE = 'Yahoo Finance';
+
+/** Un texte venu de la source, bon pour un journal : borné, sans caractère de contrôle. */
+const sur = (t) => String(t ?? '').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 120);
 
 /** Date civile (AAAA-MM-JJ) d'un horodatage Unix, dans le fuseau de la place de cotation. */
 function dateDePlace(secondes, decalageSecondes) {
@@ -22,16 +28,21 @@ function dateDePlace(secondes, decalageSecondes) {
 export function lireCours(json) {
   const chart = json?.chart;
   if (!chart) return { ok: false, motif: 'réponse sans « chart »' };
-  if (chart.error) return { ok: false, motif: `erreur de la source : ${chart.error.description ?? chart.error.code ?? 'inconnue'}` };
+  if (chart.error) return { ok: false, motif: `erreur de la source : ${sur(chart.error.description ?? chart.error.code ?? 'inconnue')}` };
   const r = chart.result?.[0];
   if (!r?.meta?.symbol) return { ok: false, motif: 'réponse sans résultat' };
   const decalage = Number.isFinite(r.meta.gmtoffset) ? r.meta.gmtoffset : 0;
   const horodatages = r.timestamp ?? [];
   const clotures = r.indicators?.quote?.[0]?.close ?? [];
+  // Le dernier point d'une séance en cours n'est pas une clôture : c'est le
+  // prix du moment. On ne garde que les séances terminées (revue du lot 2).
+  const seance = r.meta.currentTradingPeriod?.regular;
+  const enSeance = (t) => seance && typeof seance.start === 'number' && typeof seance.end === 'number' && t >= seance.start && t < seance.end;
   const cours = [];
   for (let i = 0; i < horodatages.length; i++) {
     const c = clotures[i];
     if (typeof c !== 'number' || !Number.isFinite(c) || c <= 0) continue; // jour sans cotation, ou valeur douteuse
+    if (enSeance(horodatages[i])) continue;
     cours.push({ date: dateDePlace(horodatages[i], decalage), centimes: Math.round(c * 100) });
   }
   if (cours.length === 0) return { ok: false, motif: 'aucun cours exploitable dans la réponse' };
@@ -74,13 +85,10 @@ async function lireJson(url, fetchImpl) {
   }
 }
 
-/** Symbole accepté : lettres, chiffres, point, tiret, jusqu'à 20 caractères (ex. WPEA.PA). */
-export const SYMBOLE_VALIDE = /^[A-Z0-9][A-Z0-9.\-^]{0,19}$/;
-
-/** GET des cours d'un symbole sur la période (défaut : un mois, pas quotidien). */
-export async function recupererCours(symbole, { fetchImpl = fetch, periode = '1mo' } = {}) {
-  if (!SYMBOLE_VALIDE.test(symbole)) return { ok: false, motif: `symbole illisible : « ${symbole} »` };
-  const r = await lireJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbole)}?range=${periode}&interval=1d`, fetchImpl);
+/** GET des cours d'un symbole sur un mois, pas quotidien. */
+export async function recupererCours(symbole, { fetchImpl = fetch } = {}) {
+  if (!SYMBOLE_VALIDE.test(symbole)) return { ok: false, motif: `symbole illisible : « ${sur(symbole)} »` };
+  const r = await lireJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbole)}?range=${PERIODE}&interval=1d`, fetchImpl);
   return r.ok ? lireCours(r.json) : r;
 }
 

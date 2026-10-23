@@ -47,7 +47,8 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 
 - `lib/` — moteurs purs, sans accès réseau. `lib/base.mjs` ouvre la base ;
   `schema.mjs` migrations numérotées (une migration publiée ne se modifie
-  jamais) ; `referentiel.mjs` écriture/lecture validées (S6), versements ;
+  jamais) ; `referentiel.mjs` écriture/lecture validées (S6), versements, lignes
+  cotées, achats et leur annulation ;
   `bilan.mjs` bilan à quote-part en fractions exactes (S2) ;
   `allocation.mjs` cible, bandes 5/25, répartition du versement en option A
   (S-L1-1) ; `objectif.mjs` point de départ, amorçage des lignes, classes

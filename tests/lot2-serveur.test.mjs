@@ -25,6 +25,7 @@ const fauxYahoo = async (url) => {
   if (panne) return { ok: false, status: 503 };
   if (url.includes('/finance/search')) return { ok: true, json: async () => fixture('yahoo-recherche-isin.json') };
   if (url.includes('/chart/WPEA.PA')) return { ok: true, json: async () => fixture('yahoo-cours-wpea.json') };
+  if (url.includes('/chart/SWDA.L')) return { ok: true, json: async () => { const j = fixture('yahoo-cours-wpea.json'); j.chart.result[0].meta.symbol = 'SWDA.L'; j.chart.result[0].meta.currency = 'GBp'; return j; } };
   return { ok: false, status: 404 };
 };
 
@@ -93,15 +94,16 @@ test('S-L2-2 et S-L2-3 — un achat en parts, puis l\'accueil montre la valeur a
   const ligne = lireEtat(jetable.base).actifs.find((a) => a.symboleCours === 'WPEA.PA');
   const refus = await post('/achat', { parts: '', prix: '7', actif_id: String(ligne.id), date: '2026-10-01' });
   assert.equal(refus.statut, 400);
-  assert.match(refus.corps, /Parts : nombre obligatoire/);
+  assert.match(refus.corps, /Parts : nombre de parts obligatoire/);
+  assert.equal((await post('/achat', { parts: '1e3', prix: '7', actif_id: String(ligne.id), date: '2026-10-01' })).statut, 400, 'les parts se lisent en chiffres, pas en flottant');
 
   const ok = await post('/achat', { parts: '100', prix: '7,00', actif_id: String(ligne.id), date: '2026-09-01', frais: '0,99' });
   assert.equal(ok.statut, 303);
   assert.equal(lirePositions(jetable.base)[ligne.id].coutCentimes, 70_099);
 
   const accueil = normaliser((await requete()).corps);
-  assert.match(accueil, /711,00 €/, '100 parts × 7,11 € (dernier cours de la fixture)');
-  assert.match(accueil, /\+10,01 €/, 'plus-value : 711,00 − 700,99');
+  assert.match(accueil, /719,00 €/, '100 parts × 7,19 € (dernière clôture de la fixture)');
+  assert.match(accueil, /\+18,01 €/, 'plus-value : 719,00 − 700,99');
   assert.match(accueil, /Yahoo Finance \(100 parts\)/);
   assert.match(accueil, /Ce que ça rapporte/);
   assert.match(accueil, /\/ an/, 'le TRI s\'affiche : 52 jours de recul');
@@ -125,7 +127,7 @@ test('les cours ne sont pas redemandés tant qu\'ils sont frais ; le bouton forc
   const page = await requete();
   assert.equal(page.statut, 200);
   assert.match(page.corps, /mise à jour impossible : http_503/);
-  assert.match(normaliser(page.corps), /711,00 €/, 'le dernier cours reste affiché');
+  assert.match(normaliser(page.corps), /719,00 €/, 'le dernier cours reste affiché');
   panne = false;
 });
 
@@ -135,4 +137,48 @@ test('la recherche en panne dit pourquoi, sans casser la page', async () => {
   assert.equal(r.statut, 200);
   assert.match(r.corps, /recherche impossible : http_503/);
   panne = false;
+});
+
+test('une ligne cotée hors euro est refusée au rafraîchissement, et la page le dit', async () => {
+  const pea = lireEtat(jetable.base).enveloppes.find((e) => e.type === 'pea');
+  const ajout = await post('/lignes/ajouter', { symbole: 'SWDA.L', nom: 'iShares Core MSCI World (Londres)', nature: 'etf', enveloppe_id: String(pea.id), classe: 'actions_monde' });
+  assert.equal(ajout.statut, 303);
+  await attendre(30);
+  const ligne = lireEtat(jetable.base).actifs.find((a) => a.symboleCours === 'SWDA.L');
+  assert.equal(lireDerniersCours(jetable.base)[ligne.id], undefined, 'aucun cours en pence enregistré');
+  assert.match((await requete()).corps, /mise à jour impossible : cotée en GBp/);
+});
+
+test('un achat erroné s\'annule par contre-écriture : la position revient, l\'achat reste en base, une seule annulation possible', async () => {
+  const ligne = lireEtat(jetable.base).actifs.find((a) => a.symboleCours === 'WPEA.PA');
+  const avant = lirePositions(jetable.base)[ligne.id];
+  assert.equal((await post('/achat', { parts: '12,5', prix: '7', actif_id: String(ligne.id), date: '2026-10-22' })).statut, 303);
+  assert.equal(lirePositions(jetable.base)[ligne.id].partsMillioniemes, avant.partsMillioniemes + 12_500_000, '12,5 parts lues à la virgule');
+  const page = await requete({ chemin: '/versement' });
+  assert.match(page.corps, /Mes achats/);
+  const m = /name="achat_id" value="(\d+)"/.exec(page.corps);
+  assert.ok(m, 'le bouton Annuler porte l\'identifiant de l\'achat');
+  const annule = await post('/achat/annuler', { achat_id: m[1] });
+  assert.equal(annule.statut, 303);
+  assert.deepEqual(lirePositions(jetable.base)[ligne.id], avant, 'la position est revenue');
+  assert.equal(jetable.base.prepare("SELECT COUNT(*) AS n FROM transactions WHERE type = 'annulation_achat'").get().n, 1);
+  const deuxieme = await post('/achat/annuler', { achat_id: m[1] });
+  assert.equal(deuxieme.statut, 400);
+  assert.match(deuxieme.corps, /déjà annulé/);
+  assert.equal((await post('/achat/annuler', { achat_id: '999999' })).statut, 400);
+});
+
+test('un PEA enregistré sans date reçoit sa date depuis le point de départ, sans créer de doublon', async () => {
+  jetable.base.prepare("UPDATE enveloppe SET date_ouverture = NULL WHERE type = 'pea'").run();
+  const depart = await requete({ chemin: '/depart' });
+  assert.match(depart.corps, /Date d'ouverture de ton PEA/);
+  const r = await post('/depart', {
+    reserve: '25 000', matelas: '15 000', epargne_mensuelle: '500', horizon: '10', perte_max: '30',
+    immobilier: '300 000', immobilier_date: '2026-10-01', immobilier_source: 'à la louche', a_pea: 'oui', pea_date: '2026-10-24',
+  });
+  assert.equal(r.statut, 303);
+  const peas = lireEtat(jetable.base).enveloppes.filter((e) => e.type === 'pea');
+  assert.equal(peas.length, 1);
+  assert.equal(peas[0].dateOuverture, '2026-10-24');
+  assert.doesNotMatch((await requete({ chemin: '/depart' })).corps, /Date d'ouverture/);
 });

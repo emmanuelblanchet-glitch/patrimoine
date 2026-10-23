@@ -3,7 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { lireCours, lireRecherche, recupererCours, chercher, SYMBOLE_VALIDE } from '../collecteurs/yahoo.mjs';
+import { lireCours, lireRecherche, recupererCours, chercher } from '../collecteurs/yahoo.mjs';
+import { SYMBOLE_VALIDE } from '../lib/saisie.mjs';
 
 const fixture = (nom) => JSON.parse(readFileSync(new URL(`./fixtures/${nom}`, import.meta.url), 'utf8'));
 
@@ -13,12 +14,13 @@ test('lireCours : la fixture WPEA donne des cours datés en centimes, sans le jo
   assert.equal(r.valeur.symbole, 'WPEA.PA');
   assert.equal(r.valeur.devise, 'EUR');
   assert.match(r.valeur.nom, /MSCI World/);
-  assert.equal(r.valeur.cours.length, 22, '23 points dont un nul');
+  assert.equal(r.valeur.cours.length, 21, '23 points : un nul, un en séance');
   for (const c of r.valeur.cours) {
     assert.match(c.date, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(Number.isSafeInteger(c.centimes) && c.centimes > 0);
   }
-  assert.equal(r.valeur.cours.at(-1).centimes, 711, '7,11 € au dernier jour coté de la fixture');
+  assert.equal(r.valeur.cours.at(-1).date, '2026-10-21', 'la séance du 23 est en cours : pas une clôture');
+  assert.equal(r.valeur.cours.at(-1).centimes, 719, '7,19 € à la dernière clôture de la fixture');
 });
 
 test('lireCours : vide, erreur de la source, sans résultat, valeurs nulles ou négatives → refus explicite', () => {
@@ -69,4 +71,12 @@ test('recupererCours / chercher : symbole illisible refusé sans appel, réseau 
   const panne = async () => { throw new TypeError('fetch failed'); };
   assert.equal((await chercher('IE0002XZSHO1', { fetchImpl: panne })).motif, 'réseau injoignable');
   assert.ok(SYMBOLE_VALIDE.test('CW8.PA') && !SYMBOLE_VALIDE.test('cw8.pa'));
+});
+
+test('lireCours : le point de la séance en cours est écarté, celui d\'une séance finie est gardé', () => {
+  const seance = { start: 1792738800, end: 1792769400 };
+  const json = (t) => ({ chart: { result: [{ meta: { symbol: 'X', gmtoffset: 0, currentTradingPeriod: { regular: seance } }, timestamp: [t], indicators: { quote: [{ close: [10] }] } }] } });
+  assert.equal(lireCours(json(seance.start + 60)).ok, false, 'en séance : rien d\'exploitable');
+  assert.equal(lireCours(json(seance.start - 86_400)).ok, true, 'veille : clôture');
+  assert.equal(lireCours(json(seance.end)).ok, true, 'séance fermée : clôture');
 });

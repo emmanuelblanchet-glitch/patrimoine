@@ -91,7 +91,14 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
   Finance, statut fait. Même jour, même ligne : une seule valeur.
 - **Achat** : « N parts à P € le … », transaction immuable avec quantité ;
   la **position** d'une ligne = somme des parts, son **coût d'acquisition**
-  = somme des achats, frais compris.
+  = somme des achats, frais compris. Réservé aux lignes cotées.
+- **Annulation d'achat** : la contre-écriture d'un achat erroné (mêmes
+  parts, même montant, en négatif) ; une seule par achat, l'achat reste en
+  base.
+- **Mouvement** : la page où l'on dit « j'ai acheté » (ligne cotée) ou
+  « j'ai versé » (ligne sans cours), et d'où l'on annule un achat.
+- **Flux** : tout argent entré dans la poche, daté et signé — versements,
+  achats, abondements, annulations ; le rendement en vit.
 - **Valeur d'une ligne cotée** = parts × dernier cours ; elle l'emporte sur
   une valeur saisie du même jour.
 - **Plus-value** : valeur du jour − coût d'acquisition, en euros et en %.

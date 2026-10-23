@@ -17,18 +17,17 @@ import { HOTE, RACINE_DEPOT } from './config.mjs';
 import {
   lireEtat, creerEnveloppe, creerActif, creerPassif, ajouterValorisation, ErreurSaisie,
   validerEnveloppe, validerActif, validerPassif, validerValorisation, validerVersement, enregistrerVersement,
-  validerAchat, enregistrerAchat, definirSymbole, lireFlux,
+  validerAchat, enregistrerAchat, annulerAchat, lireAchats, validerLigneCotee, creerLigneCotee,
 } from '../lib/referentiel.mjs';
 import { calculerBilan } from '../lib/bilan.mjs';
 import { lireDate } from '../lib/saisie.mjs';
 import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne, validerClasse } from '../lib/objectif.mjs';
 import { etatDeLaPoche } from '../lib/poche.mjs';
 import { aujourdhuiLocal } from '../lib/format.mjs';
-import { SYMBOLE_VALIDE } from '../collecteurs/yahoo.mjs';
 import { creerRafraichisseur } from './cours.mjs';
 import {
   lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation,
-  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne,
+  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation,
 } from './formulaires.mjs';
 import { pageErreur } from './gabarit.mjs';
 import { pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages } from './pages-poche.mjs';
@@ -79,7 +78,7 @@ const ECRANS = {
     apres: '/',
   },
   '/versement': {
-    page: (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui }, options),
+    page: (ctx, options) => pageMouvement(ctx, options),
     lire: lireFormulaireVersement,
     valider: validerVersement,
     ecrire: enregistrerVersement,
@@ -95,31 +94,27 @@ const ECRANS = {
   '/lignes/ajouter': {
     page: (ctx, options) => pageLignes({ etat: ctx.etat, poche: ctx.poche }, options),
     lire: lireFormulaireAjoutLigne,
-    valider: validerAjoutLigne,
-    // Une ligne cotée : l'actif, sa classe, son symbole ; puis ses cours arrivent en arrière-plan.
+    valider: validerLigneCotee,
+    // La ligne créée, ses cours arrivent en arrière-plan.
     ecrire: (base, d, ctx) => {
-      const doublon = ctx.etat.actifs.find((a) => a.enveloppeId === d.enveloppeId && a.symboleCours === d.symbole);
-      if (doublon) throw new ErreurSaisie([`« ${d.symbole} » est déjà une ligne de cette enveloppe (${doublon.libelle})`]);
-      base.exec('BEGIN');
-      try {
-        const id = creerActif(base, { enveloppeId: d.enveloppeId, nature: d.nature, libelle: d.nom, identifiant: d.symbole });
-        classerLigne(base, id, d.classe, d.classe === 'mixte' ? 5000 : null);
-        definirSymbole(base, id, d.symbole);
-        base.exec('COMMIT');
-        ctx.rafraichisseur.rafraichirSiVieux([{ actifId: id, symboleCours: d.symbole, cours: null }], { forcer: true });
-      } catch (e) {
-        base.exec('ROLLBACK');
-        throw e;
-      }
+      const id = creerLigneCotee(base, d);
+      ctx.rafraichisseur.rafraichirSiVieux([{ actifId: id, symboleCours: d.symbole }], { forcer: true });
     },
     apres: '/lignes',
   },
   '/achat': {
-    page: (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui }, { ...options, formulaire: 'achat' }),
+    page: (ctx, options) => pageMouvement(ctx, { ...options, formulaire: 'achat' }),
     lire: lireFormulaireAchat,
     valider: validerAchat,
     ecrire: enregistrerAchat,
     apres: '/',
+  },
+  '/achat/annuler': {
+    page: (ctx, options) => pageMouvement(ctx, { ...options, formulaire: 'annulation' }),
+    lire: lireFormulaireAnnulation,
+    valider: () => [],
+    ecrire: (base, d, ctx) => annulerAchat(base, d.transactionId, { date: ctx.aujourdhui }),
+    apres: '/versement',
   },
   '/enveloppes': { page: (ctx, o) => pageEnveloppes(ctx.etat, o), lire: lireFormulaireEnveloppe, valider: validerEnveloppe, ecrire: creerEnveloppe, apres: '/enveloppes' },
   '/actifs': { page: (ctx, o) => pageActifs(ctx.etat, o), lire: lireFormulaireActif, valider: validerActif, ecrire: creerActif, apres: '/actifs' },
@@ -127,21 +122,14 @@ const ECRANS = {
   '/valorisations': { page: (ctx, o) => pageValorisations(ctx.etat, o), lire: lireFormulaireValorisation, valider: validerValorisation, ecrire: ajouterValorisation, apres: '/valorisations' },
 };
 
-function validerAjoutLigne(d) {
-  const motifs = [];
-  if (!d.symbole || !SYMBOLE_VALIDE.test(d.symbole)) motifs.push('symbole de cotation illisible');
-  if (!d.nom) motifs.push('nom de la ligne obligatoire');
-  if (!Number.isSafeInteger(d.enveloppeId)) motifs.push('choisir l\'enveloppe qui accueille la ligne');
-  if (!['actions_monde', 'sans_risque', 'mixte'].includes(d.classe)) motifs.push('classe inconnue');
-  return motifs;
-}
+const pageMouvement = (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui, achats: lireAchats(ctx.base) }, options);
 
 /** Tout ce qu'une page peut avoir besoin de lire, calculé une fois par requête. */
 function contexte(base, aujourdhui, cleClaude, rafraichisseur) {
   const etat = lireEtat(base);
   const objectif = lireObjectif(base);
   const cible = lireCible(base);
-  const poche = etatDeLaPoche(etat, objectif, cible, aujourdhui, lireFlux(base));
+  const poche = etatDeLaPoche(etat, objectif, cible, aujourdhui);
   const etatCours = Object.fromEntries(poche.lignes.filter((l) => l.symboleCours).map((l) => [l.symboleCours, rafraichisseur.etat(l.symboleCours)]));
   return { base, etat, objectif, cible, poche, aujourdhui, cleClaude: Boolean(cleClaude()), rafraichisseur, etatCours };
 }
