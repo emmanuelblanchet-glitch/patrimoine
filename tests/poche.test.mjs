@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { appliquerMigrations } from '../lib/schema.mjs';
 import { creerEnveloppe, creerActif, ajouterValorisation, lireEtat } from '../lib/referentiel.mjs';
 import { enregistrerObjectif, lireObjectif, lireCible, classerLigne } from '../lib/objectif.mjs';
-import { lignesDeLaPoche, destinations, etatDeLaPoche } from '../lib/poche.mjs';
+import { lignesDeLaPoche, destinations, etatDeLaPoche, rendementDeLaPoche } from '../lib/poche.mjs';
 import { baseJetable } from './aide.mjs';
 
 const OBJ = {
@@ -94,4 +94,28 @@ test('sans point de départ : pas de charge utile, pas de trajectoire, mais un �
   } finally {
     nettoyer();
   }
+});
+
+test('S-L2-3 — le rendement ne compte que les lignes alimentées par un flux suivi, jamais la réserve d\'avant l\'outil', () => {
+  const lignes = [{ actifId: 1, valeurCentimes: 25_000_00 }, { actifId: 2, valeurCentimes: 110_000 }];
+  const flux = [{ date: '2025-10-23', actifId: 2, centimes: 100_000 }];
+  const r = rendementDeLaPoche(flux, lignes, '2026-10-23');
+  assert.equal(r.valeurCentimes, 110_000, 'la réserve (ligne 1) est hors calcul');
+  assert.ok(Math.abs(r.pb - 1000) <= 2, `10 % attendu, ${r.pb} pb`);
+  assert.equal(r.statut, 'fait');
+  assert.equal(rendementDeLaPoche([], lignes, '2026-10-23').pb, null);
+  assert.equal(rendementDeLaPoche([{ date: '2026-10-10', actifId: 2, centimes: 1 }], lignes, '2026-10-23').statut, null, 'trop tôt');
+});
+
+test('S-L2-3 — le stock « point de départ » d\'une ligne alimentée compte comme un flux à sa date, sinon le TRI est absurde', () => {
+  // Ligne 2 : 1 000 € au point de départ (23/10/2025), 100 € versés le même jour, 1 210 € un an après → 10 %.
+  const lignes = [{ actifId: 2, valeurCentimes: 121_000 }];
+  const flux = [{ date: '2025-10-23', actifId: 2, centimes: 10_000 }];
+  const valorisations = [{ cible: { actifId: 2 }, date: '2025-10-23', valeurCentimes: 100_000, source: 'point de départ' }];
+  const avec = rendementDeLaPoche(flux, lignes, '2026-10-23', valorisations);
+  assert.ok(Math.abs(avec.pb - 1000) <= 2, `10 % attendu, ${avec.pb} pb`);
+  const sans = rendementDeLaPoche(flux, lignes, '2026-10-23');
+  assert.equal(sans.pb, null, 'sans le stock, le TRI sort des bornes du calcul (> 1 000 % par an)');
+  const autre = rendementDeLaPoche(flux, lignes, '2026-10-23', [{ cible: { actifId: 1 }, date: '2025-10-23', valeurCentimes: 100_000, source: 'point de départ' }]);
+  assert.equal(autre.pb, null, 'le stock d\'une autre ligne ne compte pas');
 });

@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lireMontant, lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte } from '../lib/saisie.mjs';
+import { lireMontant, lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte, lireParts } from '../lib/saisie.mjs';
 import { arrondir, fraction } from '../lib/fraction.mjs';
 
 test('montants : formats français et anglais, espaces et symbole €', () => {
@@ -71,4 +71,15 @@ test('arrondi au centime : demi éloigné de zéro, dans les deux sens', () => {
   assert.equal(arrondir(fraction(1, 3)), 0);
   assert.equal(arrondir(fraction(2, 3)), 1);
   assert.equal(arrondir(fraction(-5, 3)), -2);
+});
+
+test('parts : en millionièmes, virgule ou point, six décimales au plus, jamais zéro ni flottant', () => {
+  assert.equal(lireParts('12').valeur, 12_000_000);
+  assert.equal(lireParts('12,5').valeur, 12_500_000);
+  assert.equal(lireParts('0.333333').valeur, 333_333);
+  assert.equal(lireParts(' 1 ').valeur, 1_000_000);
+  assert.equal(lireParts('0,1234567').ok, false);
+  assert.equal(lireParts('0').ok, false);
+  assert.equal(lireParts('1e3').ok, false);
+  assert.equal(lireParts('').ok, false);
 });

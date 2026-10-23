@@ -2,7 +2,7 @@
 // champs tapés et rendent { donnees, motifs }. Le référentiel valide ensuite
 // les règles du domaine ; ici, on ne fait que lire.
 
-import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte } from '../lib/saisie.mjs';
+import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte, lireParts } from '../lib/saisie.mjs';
 import { PART_ACTIONS_PAR_DEFAUT_PB } from '../lib/allocation.mjs';
 
 function lecteur(champs) {
@@ -83,6 +83,7 @@ export function lireFormulaireDepart(champs) {
     immobilierDate: lire(lireDate, 'immobilier_date', 'Date de l\'estimation'),
     immobilierSource: texte('immobilier_source'),
     aPea: champs.a_pea === 'oui',
+    peaDate: lire(lireDate, 'pea_date', 'Date d\'ouverture du PEA'),
     aAv: champs.a_av === 'oui',
   };
   return { donnees, motifs };
@@ -100,6 +101,34 @@ export function lireFormulaireVersement(champs) {
     type: champs.type === 'abondement' ? 'abondement' : 'versement',
   };
   return { donnees, motifs };
+}
+
+/** « J'ai acheté N parts à P € le … » : parts en millionièmes, prix et frais en centimes. */
+export function lireFormulaireAchat(champs) {
+  const { motifs, lire, texte } = lecteur(champs);
+  const donnees = {
+    actifId: id(champs.actif_id),
+    date: lire(lireDate, 'date', 'Date'),
+    partsMillioniemes: lire(lireParts, 'parts', 'Parts'),
+    prixCentimes: lire(lireMontantFacultatif, 'prix', 'Prix par part'),
+    fraisCentimes: lire(lireMontantFacultatif, 'frais', 'Frais'),
+    note: texte('note'),
+  };
+  return { donnees, motifs };
+}
+
+/** Ajouter une ligne cotée trouvée par la recherche : symbole, nom, enveloppe, classe. */
+export function lireFormulaireAjoutLigne(champs) {
+  const { motifs, texte } = lecteur(champs);
+  return {
+    donnees: { symbole: texte('symbole'), nom: texte('nom'), nature: texte('nature'), enveloppeId: id(champs.enveloppe_id), classe: texte('classe') },
+    motifs,
+  };
+}
+
+/** Annuler un achat erroné : son identifiant seul ; la date est celle du jour. */
+export function lireFormulaireAnnulation(champs) {
+  return { donnees: { transactionId: id(champs.achat_id) }, motifs: [] };
 }
 
 /** Classer une ligne existante : classe et, pour « mixte », part actions. */

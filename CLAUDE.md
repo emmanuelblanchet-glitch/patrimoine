@@ -16,7 +16,7 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
    de secrets et d'IBAN).
 2. **Aucune écriture vers l'extérieur** : jamais d'ordre, de virement,
    d'écriture chez une banque, un courtier, un service. Les collecteurs
-   lisent, et c'est tout (seam S10, à poser avec le premier collecteur).
+   lisent, et c'est tout (seam S10, testé sur `collecteurs/yahoo.mjs`).
 3. **Chaque nombre porte sa source et son statut** — fait, estimation ou
    opinion. Une valorisation sans source est refusée à l'écriture (S6).
 4. **Les règles fiscales sont des paramètres datés par année, sourcés par
@@ -47,20 +47,27 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 
 - `lib/` — moteurs purs, sans accès réseau. `lib/base.mjs` ouvre la base ;
   `schema.mjs` migrations numérotées (une migration publiée ne se modifie
-  jamais) ; `referentiel.mjs` écriture/lecture validées (S6), versements ;
+  jamais) ; `referentiel.mjs` écriture/lecture validées (S6), versements, lignes
+  cotées, achats et leur annulation ;
   `bilan.mjs` bilan à quote-part en fractions exactes (S2) ;
   `allocation.mjs` cible, bandes 5/25, répartition du versement en option A
   (S-L1-1) ; `objectif.mjs` point de départ, amorçage des lignes, classes
-  (S-L1-2) ; `poche.mjs` assemble la poche ; `explication.mjs` charge utile
-  minimale, empreinte, texte de repli (S-L1-3/4/5) ; `fraction.mjs`,
-  `saisie.mjs`.
+  (S-L1-2) ; `poche.mjs` assemble la poche, rendement sur les lignes
+  alimentées ; `explication.mjs` charge utile minimale, empreinte, texte de
+  repli (S-L1-3/4/5) ; `cours.mjs` cours idempotents et valorisation parts ×
+  cours (S-L2-2) ; `performance.mjs` plus-value et TRI (S-L2-3) ;
+  `fraction.mjs`, `saisie.mjs`, `format.mjs`.
+- `collecteurs/` — ce qui lit l'extérieur, isolé des moteurs : `yahoo.mjs`
+  (parseurs purs testés sur fixtures + GET du symbole seul, S-L2-1, S10).
 - `serveur/` — serveur local (Node `http`, 127.0.0.1 seulement, l'hôte
   n'est pas réglable) : `config.mjs` refuse une base dans le dépôt ;
-  `application.mjs` gardes Host/Origin, routes, statiques ; `pages.mjs`
-  HTML échappé ; `formulaires.mjs` ; `claude.mjs` le seul appel sortant
-  (API Messages, `fetch` natif, clé `ANTHROPIC_API_KEY`) ;
-  `explications.mjs` cache + appel en arrière-plan + repli ;
-  `demarrer.mjs` point d'entrée.
+  `application.mjs` gardes Host/Origin, routes, statiques ; `gabarit.mjs`,
+  `pages-poche.mjs`, `pages-details.mjs` HTML échappé ; `formulaires.mjs` ;
+  `claude.mjs` (API Messages, `fetch` natif, clé `ANTHROPIC_API_KEY`) ;
+  `explications.mjs` cache + appel en arrière-plan + repli ; `cours.mjs`
+  rafraîchissement des cours en arrière-plan (20 h, recul 1 h) ;
+  `demarrer.mjs` point d'entrée. Les deux seuls appels sortants : Anthropic
+  (texte) et Yahoo Finance (cours, GET du symbole).
 - `public/` — seuls fichiers statiques servis (à plat ou dans `fonts/`,
   extensions allowlistées). Polices embarquées : jamais chargées d'un tiers.
 - `docs/design/reglages.json` — le système de design retenu par Emmanuel

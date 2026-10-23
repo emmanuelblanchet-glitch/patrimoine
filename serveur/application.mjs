@@ -17,19 +17,21 @@ import { HOTE, RACINE_DEPOT } from './config.mjs';
 import {
   lireEtat, creerEnveloppe, creerActif, creerPassif, ajouterValorisation, ErreurSaisie,
   validerEnveloppe, validerActif, validerPassif, validerValorisation, validerVersement, enregistrerVersement,
+  validerAchat, enregistrerAchat, annulerAchat, lireAchats, validerLigneCotee, creerLigneCotee,
 } from '../lib/referentiel.mjs';
 import { calculerBilan } from '../lib/bilan.mjs';
 import { lireDate } from '../lib/saisie.mjs';
 import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne, validerClasse } from '../lib/objectif.mjs';
 import { etatDeLaPoche } from '../lib/poche.mjs';
+import { aujourdhuiLocal } from '../lib/format.mjs';
+import { creerRafraichisseur } from './cours.mjs';
 import {
   lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation,
-  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse,
+  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation,
 } from './formulaires.mjs';
-import {
-  pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages,
-  pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations, pageErreur,
-} from './pages.mjs';
+import { pageErreur } from './gabarit.mjs';
+import { pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages } from './pages-poche.mjs';
+import { pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations } from './pages-details.mjs';
 import { creerFournisseur } from './explications.mjs';
 
 const DOSSIER_PUBLIC = join(RACINE_DEPOT, 'public');
@@ -76,7 +78,7 @@ const ECRANS = {
     apres: '/',
   },
   '/versement': {
-    page: (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui }, options),
+    page: (ctx, options) => pageMouvement(ctx, options),
     lire: lireFormulaireVersement,
     valider: validerVersement,
     ecrire: enregistrerVersement,
@@ -89,18 +91,47 @@ const ECRANS = {
     ecrire: (base, d) => classerLigne(base, d.actifId, d.classe, d.partActionsPb),
     apres: '/lignes',
   },
+  '/lignes/ajouter': {
+    page: (ctx, options) => pageLignes({ etat: ctx.etat, poche: ctx.poche }, options),
+    lire: lireFormulaireAjoutLigne,
+    valider: validerLigneCotee,
+    // La ligne créée, ses cours arrivent en arrière-plan.
+    ecrire: (base, d, ctx) => {
+      const id = creerLigneCotee(base, d);
+      ctx.rafraichisseur.rafraichirSiVieux([{ actifId: id, symboleCours: d.symbole }], { forcer: true });
+    },
+    apres: '/lignes',
+  },
+  '/achat': {
+    page: (ctx, options) => pageMouvement(ctx, { ...options, formulaire: 'achat' }),
+    lire: lireFormulaireAchat,
+    valider: validerAchat,
+    ecrire: enregistrerAchat,
+    apres: '/',
+  },
+  '/achat/annuler': {
+    page: (ctx, options) => pageMouvement(ctx, { ...options, formulaire: 'annulation' }),
+    lire: lireFormulaireAnnulation,
+    valider: () => [],
+    ecrire: (base, d, ctx) => annulerAchat(base, d.transactionId, { date: ctx.aujourdhui }),
+    apres: '/versement',
+  },
   '/enveloppes': { page: (ctx, o) => pageEnveloppes(ctx.etat, o), lire: lireFormulaireEnveloppe, valider: validerEnveloppe, ecrire: creerEnveloppe, apres: '/enveloppes' },
   '/actifs': { page: (ctx, o) => pageActifs(ctx.etat, o), lire: lireFormulaireActif, valider: validerActif, ecrire: creerActif, apres: '/actifs' },
   '/passifs': { page: (ctx, o) => pagePassifs(ctx.etat, o), lire: lireFormulairePassif, valider: validerPassif, ecrire: creerPassif, apres: '/passifs' },
   '/valorisations': { page: (ctx, o) => pageValorisations(ctx.etat, o), lire: lireFormulaireValorisation, valider: validerValorisation, ecrire: ajouterValorisation, apres: '/valorisations' },
 };
 
+const pageMouvement = (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui, achats: lireAchats(ctx.base) }, options);
+
 /** Tout ce qu'une page peut avoir besoin de lire, calculé une fois par requête. */
-function contexte(base, aujourdhui, cleClaude) {
+function contexte(base, aujourdhui, cleClaude, rafraichisseur) {
   const etat = lireEtat(base);
   const objectif = lireObjectif(base);
   const cible = lireCible(base);
-  return { base, etat, objectif, cible, poche: etatDeLaPoche(etat, objectif, cible, aujourdhui), aujourdhui, cleClaude: Boolean(cleClaude()) };
+  const poche = etatDeLaPoche(etat, objectif, cible, aujourdhui);
+  const etatCours = Object.fromEntries(poche.lignes.filter((l) => l.symboleCours).map((l) => [l.symboleCours, rafraichisseur.etat(l.symboleCours)]));
+  return { base, etat, objectif, cible, poche, aujourdhui, cleClaude: Boolean(cleClaude()), rafraichisseur, etatCours };
 }
 
 function envoyer(res, statut, corps, entetes = {}) {
@@ -147,7 +178,8 @@ async function servirStatique(res, nom) {
 /**
  * @param {{ base, hotesAutorises: () => string[], aujourdhui?: () => string }} options
  */
-function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date().toISOString().slice(0, 10), fournisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
+function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
+  const ctxDe = () => contexte(base, aujourdhui(), cleClaude, rafraichisseur);
   return async (req, res) => {
     try {
       const hote = req.headers.host ?? '';
@@ -160,9 +192,17 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
       if (req.method === 'GET' || req.method === 'HEAD') {
         if (chemin.startsWith('/public/')) return await servirStatique(res, chemin.slice('/public/'.length));
         if (chemin === '/') {
-          const ctx = contexte(base, aujourdhui(), cleClaude);
+          const ctx = ctxDe();
+          rafraichisseur.rafraichirSiVieux(ctx.poche.lignes);
           const explication = ctx.poche.charge ? fournisseur.obtenir(ctx.poche.charge, ctx.poche.empreinte) : null;
-          return envoyer(res, 200, pageAccueil({ poche: ctx.poche, explication, aujourdhui: ctx.aujourdhui }));
+          return envoyer(res, 200, pageAccueil({ poche: ctx.poche, explication, aujourdhui: ctx.aujourdhui, etatCours: ctx.etatCours }));
+        }
+        if (chemin === '/lignes' && url.searchParams.has('q')) {
+          const ctx = ctxDe();
+          const q = url.searchParams.get('q');
+          const r = await rafraichisseur.chercher(q);
+          const recherche = r.ok ? { q, resultats: r.valeur } : { q, resultats: [], motif: `recherche impossible : ${r.motif}` };
+          return envoyer(res, 200, pageLignes({ etat: ctx.etat, poche: ctx.poche }, { recherche }));
         }
         if (chemin === '/bilan') {
           const demandee = url.searchParams.get('date');
@@ -171,14 +211,14 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
           return envoyer(res, 200, pageBilan(calculerBilan(lireEtat(base), date.valeur)));
         }
         if (chemin === '/allocation') {
-          const ctx = contexte(base, aujourdhui(), cleClaude);
-          return envoyer(res, 200, pageAllocation({ poche: ctx.poche, cible: ctx.cible }));
+          const ctx = ctxDe();
+          return envoyer(res, 200, pageAllocation({ poche: ctx.poche, cible: ctx.cible, enveloppes: ctx.etat.enveloppes }));
         }
         if (chemin === '/reglages') {
-          const ctx = contexte(base, aujourdhui(), cleClaude);
+          const ctx = ctxDe();
           return envoyer(res, 200, pageReglages({ objectif: ctx.objectif, cible: ctx.cible, cleClaude: ctx.cleClaude }));
         }
-        if (ECRANS[chemin]) return envoyer(res, 200, ECRANS[chemin].page(contexte(base, aujourdhui(), cleClaude)));
+        if (ECRANS[chemin]) return envoyer(res, 200, ECRANS[chemin].page(ctxDe()));
         return envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
       }
 
@@ -186,19 +226,26 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
         if (req.headers.origin !== `http://${hote}`) {
           return envoyer(res, 403, pageErreur('Écriture refusée', 'Une saisie ne peut venir que d\'une page de ce serveur.'));
         }
+        if (chemin === '/cours/actualiser') {
+          await lireCorps(req);
+          rafraichisseur.rafraichirSiVieux(ctxDe().poche.lignes, { forcer: true });
+          res.writeHead(303, { Location: '/', ...ENTETES_SECURITE });
+          return res.end();
+        }
         const ecran = ECRANS[chemin];
         if (!ecran) return envoyer(res, 404, pageErreur('Introuvable', 'Cette page n\'existe pas.'));
         const champs = Object.fromEntries(new URLSearchParams(await lireCorps(req)));
         const { donnees, motifs } = ecran.lire(champs);
-        const ctx = contexte(base, aujourdhui(), cleClaude);
+        const ctx = ctxDe();
         try {
-          // Un champ illisible ne doit pas cacher les autres erreurs : on
-          // montre en une fois ce que la lecture ET le domaine reprochent.
-          if (motifs.length) throw new ErreurSaisie([...new Set([...motifs, ...ecran.valider(donnees)])]);
+          // La validation du domaine joue TOUJOURS, et ses motifs s'ajoutent
+          // à ceux de la lecture : on montre tout en une fois.
+          const tous = [...new Set([...motifs, ...ecran.valider(donnees)])];
+          if (tous.length) throw new ErreurSaisie(tous);
           const avertissements = ecran.ecrire(base, donnees, ctx);
           if (Array.isArray(avertissements) && avertissements.length) {
             // Enregistré, mais quelque chose mérite d'être lu avant de continuer.
-            return envoyer(res, 200, ecran.page(contexte(base, aujourdhui(), cleClaude), { valeurs: champs, avertissements, enregistre: true }));
+            return envoyer(res, 200, ecran.page(ctxDe(), { valeurs: champs, avertissements, enregistre: true }));
           }
         } catch (erreur) {
           if (!(erreur instanceof ErreurSaisie)) throw erreur;
@@ -218,7 +265,7 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = () => new Date()
 }
 
 /** Démarre le serveur, uniquement sur 127.0.0.1. `port: 0` choisit un port libre (tests). */
-export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger }) {
+export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours }) {
   return new Promise((resoudre, rejeter) => {
     const serveur = createServer();
     const hotesAutorises = () => {
@@ -226,7 +273,8 @@ export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => proc
       return [`${HOTE}:${p}`, `localhost:${p}`];
     };
     const fournisseur = creerFournisseur({ base, cle: cleClaude, rediger });
-    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, cleClaude }));
+    const rafraichisseur = creerRafraichisseur({ base, ...(fetchCours ? { fetchImpl: fetchCours } : {}) });
+    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, rafraichisseur, cleClaude }));
     serveur.once('error', rejeter);
     serveur.listen(port, HOTE, () => resoudre(serveur));
   });
