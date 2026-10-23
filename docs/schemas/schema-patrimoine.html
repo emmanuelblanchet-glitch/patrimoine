@@ -65,7 +65,7 @@
       <h3>Il répond à six questions</h3>
       <span class="ou">page Point de départ</span>
       <ul>
-        <li>de côté et matelas, par mois, PEE et sa part actions, horizon, perte maximale acceptée, immobilier net estimé</li>
+        <li>de côté et matelas, par mois, PEE et sa part actions, horizon, perte maximale acceptée, immobilier net estimé ; la date d'ouverture du PEA, dès qu'il existe</li>
         <li>l'outil <strong>amorce</strong> ses lignes : livret de réserve, PEE, PEA et assurance-vie s'ils existent</li>
         <li>une <strong>cible</strong> naît : 60 % actions monde, 40 % sans risque</li>
       </ul>
@@ -86,7 +86,7 @@
       <span class="ou">pages Mouvement · Lignes</span>
       <ul>
         <li>il ajoute son ETF par son code ISIN ; l'outil retrouve le nom et le <strong>symbole de cotation</strong></li>
-        <li>« j'ai acheté N parts à P € », ou « j'ai versé X sur telle ligne » : transactions <strong>immuables</strong></li>
+        <li>« j'ai acheté N parts à P € » (ligne cotée), ou « j'ai versé X sur telle ligne » (ligne sans cours) : transactions <strong>immuables</strong> ; un achat erroné s'<strong>annule</strong> par contre-écriture, une seule fois</li>
         <li>les cours arrivent seuls ; chaque ligne montre sa valeur au cours, sa plus-value, et la poche ce que l'épargne rapporte</li>
       </ul>
     </div>
@@ -118,7 +118,7 @@
       <h3>Base SQLite</h3>
       <span class="ou"><code>PATRIMOINE_DB</code>, hors du dépôt</span>
       <ul>
-        <li>tables : profil, objectif, allocation cible, enveloppe, actif (avec sa classe), passif, valorisation, transactions, explication (cache)</li>
+        <li>tables : profil, objectif, allocation cible, enveloppe, actif (classe, symbole de cotation unique par enveloppe), passif, valorisation, transactions, cours, explication (cache)</li>
         <li>migrations numérotées, rejouables, figées une fois publiées</li>
         <li>contraintes en base : source et statut obligatoires, transactions immuables</li>
       </ul>
@@ -138,7 +138,7 @@
       <h3>Collecteur de cours</h3>
       <span class="ou"><code>collecteurs/yahoo.mjs</code></span>
       <ul>
-        <li>un cours de clôture par jour, par GET avec le seul symbole ; source non officielle, refus de toute valeur douteuse</li>
+        <li>un cours de clôture par jour, par GET avec le seul symbole ; source non officielle, refus de toute valeur douteuse, du prix de la séance en cours, et d'une ligne cotée hors euro</li>
         <li>rafraîchi en arrière-plan quand il a plus de vingt heures ; la page ne l'attend jamais</li>
         <li>valeur d'une ligne cotée = parts × dernier cours</li>
       </ul>
@@ -217,12 +217,12 @@
   <div class="tablewrap"><table>
     <tr><th>État</th><th>Conséquence</th></tr>
     <tr><td>Pas d'authentification</td><td>Le serveur n'est joignable que depuis le Mac ; toute personne devant le Mac peut lire et écrire. Mot de passe et réseau privé au lot 3.</td></tr>
-    <tr><td>Les cours viennent d'une source non officielle</td><td>Yahoo Finance peut cesser de répondre sans préavis ; l'outil garde le dernier cours avec sa date et le dit. Yahoo apprend quel ETF est suivi, pas combien.</td></tr>
+    <tr><td>Les cours viennent d'une source non officielle</td><td>Yahoo Finance peut cesser de répondre sans préavis ; l'outil garde le dernier cours avec sa date et le dit. Yahoo apprend quel ETF est suivi, pas combien. Seules les lignes cotées en euros sont suivies.</td></tr>
     <tr><td>Les lignes sans cours sont saisies à la main</td><td>Livret, fonds euros, PEE : la valeur vieillit entre deux saisies ; l'âge affiché le rappelle.</td></tr>
-    <tr><td>Le rendement a besoin de recul</td><td>Affiché à partir de 30 jours, estimation en deçà d'un an ; calculé sur les seules lignes alimentées par un flux suivi.</td></tr>
+    <tr><td>Le rendement a besoin de recul</td><td>Affiché à partir de 30 jours, estimation en deçà d'un an ; calculé sur les seules lignes alimentées par un flux suivi, leur valeur de départ comptée comme un flux à sa date.</td></tr>
     <tr><td>Une cible unique, 60 / 40</td><td>La cible est celle du point de départ ; elle ne se modifie pas encore à l'écran.</td></tr>
     <tr><td>L'argumentation coûte un appel par situation</td><td>Chaque changement de la poche déclenche une rédaction ; même situation, même texte, sans nouvel appel.</td></tr>
-    <tr><td>Pas de modification ni de suppression</td><td>Une saisie fausse se corrige par une nouvelle valorisation à la même date (la dernière saisie fait foi) ; les transactions se corrigent par contre-écriture.</td></tr>
+    <tr><td>Pas de modification ni de suppression</td><td>Une saisie fausse se corrige par une nouvelle valorisation à la même date (la dernière saisie fait foi) ; un achat s'annule depuis Mouvement, un versement ne se corrige pas encore à l'écran.</td></tr>
     <tr><td>Le PEE est une ligne globale</td><td>Pas de détail par fonds ni d'import de relevé avant la V1.</td></tr>
     <tr><td>Une sauvegarde est un fichier à part</td><td>Rien ne sauvegarde la base automatiquement avant le lot 3.</td></tr>
   </table></div>
