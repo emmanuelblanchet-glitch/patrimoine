@@ -83,6 +83,25 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Part financière** : poche ÷ (poche + immobilier net saisi).
   **Trajectoire** : son estimation à épargne et rendement constants.
 
+## Les lignes cotées (lot 2)
+
+- **Symbole de cotation** : le code sous lequel la source de cours connaît
+  une ligne (`WPEA.PA`) ; distinct du code ISIN, qui sert à la retrouver.
+- **Cours** : un prix de clôture par jour et par ligne, source Yahoo
+  Finance, statut fait. Même jour, même ligne : une seule valeur.
+- **Achat** : « N parts à P € le … », transaction immuable avec quantité ;
+  la **position** d'une ligne = somme des parts, son **coût d'acquisition**
+  = somme des achats, frais compris.
+- **Valeur d'une ligne cotée** = parts × dernier cours ; elle l'emporte sur
+  une valeur saisie du même jour.
+- **Plus-value** : valeur du jour − coût d'acquisition, en euros et en %.
+- **Rendement** : TRI annualisé des flux suivis (versements, achats,
+  abondements) vers les lignes qui en ont reçu, et de leur valeur du jour.
+  La réserve d'avant l'outil n'y entre pas. Affiché à partir de 30 jours de
+  recul, estimation en deçà d'un an.
+- **Rafraîchissement** : les cours d'une ligne se redemandent quand ils ont
+  plus de vingt heures, en arrière-plan ; recul d'une heure après un échec.
+
 ## Les objectifs et l'allocation
 
 - **Objectif** : une cible chiffrée et datée, rattachée à une poche. La

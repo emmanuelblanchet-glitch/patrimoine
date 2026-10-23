@@ -23,7 +23,7 @@ let port;
 before(async () => {
   jetable = baseJetable();
   appliquerMigrations(jetable.base);
-  serveur = await demarrerServeur({ base: jetable.base, port: 0, aujourdhui: () => '2026-10-22' });
+  serveur = await demarrerServeur({ base: jetable.base, port: 0, aujourdhui: () => '2026-10-22', fetchCours: async () => { throw new Error('réseau interdit en test'); } });
   port = serveur.address().port;
 });
 

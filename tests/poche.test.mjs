@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { appliquerMigrations } from '../lib/schema.mjs';
 import { creerEnveloppe, creerActif, ajouterValorisation, lireEtat } from '../lib/referentiel.mjs';
 import { enregistrerObjectif, lireObjectif, lireCible, classerLigne } from '../lib/objectif.mjs';
-import { lignesDeLaPoche, destinations, etatDeLaPoche } from '../lib/poche.mjs';
+import { lignesDeLaPoche, destinations, etatDeLaPoche, rendementDeLaPoche } from '../lib/poche.mjs';
 import { baseJetable } from './aide.mjs';
 
 const OBJ = {
@@ -94,4 +94,15 @@ test('sans point de départ : pas de charge utile, pas de trajectoire, mais un �
   } finally {
     nettoyer();
   }
+});
+
+test('S-L2-3 — le rendement ne compte que les lignes alimentées par un flux suivi, jamais la réserve d\'avant l\'outil', () => {
+  const lignes = [{ actifId: 1, valeurCentimes: 25_000_00 }, { actifId: 2, valeurCentimes: 110_000 }];
+  const flux = [{ date: '2025-10-23', actifId: 2, centimes: 100_000 }];
+  const r = rendementDeLaPoche(flux, lignes, '2026-10-23');
+  assert.equal(r.valeurCentimes, 110_000, 'la réserve (ligne 1) est hors calcul');
+  assert.ok(Math.abs(r.pb - 1000) <= 2, `10 % attendu, ${r.pb} pb`);
+  assert.equal(r.statut, 'fait');
+  assert.equal(rendementDeLaPoche([], lignes, '2026-10-23').pb, null);
+  assert.equal(rendementDeLaPoche([{ date: '2026-10-10', actifId: 2, centimes: 1 }], lignes, '2026-10-23').statut, null, 'trop tôt');
 });

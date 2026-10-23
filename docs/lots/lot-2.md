@@ -99,6 +99,22 @@ Lignes. Aucune règle bloquante au lot 2 : il n'y a pas de vente.
   depuis ces chiffres (L1-3), marquée aide à la décision.
 - Règles portées : un seul PEA par personne ; un seul ETF monde suffit.
 
+### Précisé au développement (2a)
+
+- Le **rendement** ne compte que les lignes alimentées par un flux suivi :
+  la réserve saisie au point de départ n'est pas un versement, l'y mettre
+  rendrait le TRI absurde. Affiché « calcul impossible » si les flux ne
+  permettent pas de conclure.
+- La **date d'ouverture du PEA** se saisit au point de départ, à côté de la
+  case « un PEA » ; elle donne la date des cinq ans sur Allocation et Lignes.
+- La recherche Yahoo par **nom** ne répond pas de façon fiable : l'écran
+  demande le code ISIN ou le symbole.
+- Défaut ancien trouvé par le test de bout en bout : le routeur n'appelait
+  la validation du domaine que si la lecture du formulaire avait déjà une
+  erreur ; elle joue désormais toujours.
+- La page « Versement » devient « Mouvement » : j'ai acheté des parts
+  (lignes cotées), j'ai versé (lignes sans cours).
+
 ## Seams testés (bloquants, jeux synthétiques, jamais le réseau)
 
 | Seam | Comportement garanti |

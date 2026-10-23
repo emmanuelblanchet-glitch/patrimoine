@@ -28,6 +28,7 @@ before(async () => {
     aujourdhui: () => '2026-10-23',
     cleClaude: () => cle,
     rediger: async (charge, options) => { appelsClaude.push({ charge, options }); return reponseClaude; },
+    fetchCours: async () => { throw new Error('réseau interdit en test'); },
   });
   port = serveur.address().port;
 });

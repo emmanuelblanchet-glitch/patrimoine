@@ -83,6 +83,7 @@ export function lireFormulaireDepart(champs) {
     immobilierDate: lire(lireDate, 'immobilier_date', 'Date de l\'estimation'),
     immobilierSource: texte('immobilier_source'),
     aPea: champs.a_pea === 'oui',
+    peaDate: lire(lireDate, 'pea_date', 'Date d\'ouverture du PEA'),
     aAv: champs.a_av === 'oui',
   };
   return { donnees, motifs };
@@ -100,6 +101,34 @@ export function lireFormulaireVersement(champs) {
     type: champs.type === 'abondement' ? 'abondement' : 'versement',
   };
   return { donnees, motifs };
+}
+
+/** « J'ai acheté N parts à P € le … » : parts en millionièmes, prix et frais en centimes. */
+export function lireFormulaireAchat(champs) {
+  const { motifs, lire, texte } = lecteur(champs);
+  const partsTexte = String(champs.parts ?? '').replace(',', '.').trim();
+  let partsMillioniemes = null;
+  if (partsTexte === '') motifs.push('Parts : nombre obligatoire');
+  else if (!/^\d+(\.\d{1,6})?$/.test(partsTexte)) motifs.push(`Parts : nombre illisible : « ${champs.parts} » (exemple : 12 ou 12,5)`);
+  else partsMillioniemes = Math.round(Number(partsTexte) * 1_000_000);
+  const donnees = {
+    actifId: id(champs.actif_id),
+    date: lire(lireDate, 'date', 'Date'),
+    partsMillioniemes,
+    prixCentimes: lire(lireMontantFacultatif, 'prix', 'Prix par part'),
+    fraisCentimes: lire(lireMontantFacultatif, 'frais', 'Frais'),
+    note: texte('note'),
+  };
+  return { donnees, motifs };
+}
+
+/** Ajouter une ligne cotée trouvée par la recherche : symbole, nom, enveloppe, classe. */
+export function lireFormulaireAjoutLigne(champs) {
+  const { motifs, texte } = lecteur(champs);
+  return {
+    donnees: { symbole: texte('symbole'), nom: texte('nom'), nature: champs.nature === 'action' ? 'action' : 'etf', enveloppeId: id(champs.enveloppe_id), classe: texte('classe') ?? 'actions_monde' },
+    motifs,
+  };
 }
 
 /** Classer une ligne existante : classe et, pour « mixte », part actions. */
