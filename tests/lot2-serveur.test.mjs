@@ -82,6 +82,10 @@ test('S-L2-4 — chercher par ISIN montre le résultat, l\'ajouter crée la lign
   assert.equal(ligne.classePoche, 'actions_monde');
   await attendre(30);
   assert.ok(lireDerniersCours(jetable.base)[ligne.id], 'les cours sont arrivés en arrière-plan');
+  // Avant le premier achat : la ligne n'a pas de valeur, mais elle a un cours, et la page doit le dire.
+  const avantAchat = normaliser((await requete()).corps);
+  assert.match(avantAchat, /cours 7,19 € le 21 octobre 2026, aucune part encore/);
+  assert.doesNotMatch(avantAchat, /pas de cours/);
 
   const doublon = await post('/lignes/ajouter', { symbole: 'WPEA.PA', nom: 'x', nature: 'etf', enveloppe_id: String(pea.id), classe: 'actions_monde' });
   assert.equal(doublon.statut, 400);
