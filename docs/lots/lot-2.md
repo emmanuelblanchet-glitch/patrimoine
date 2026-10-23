@@ -84,20 +84,59 @@ Lignes. Aucune règle bloquante au lot 2 : il n'y a pas de vente.
   de repli) ; la date de la page en **heure locale** ; `pages.mjs` scindé
   en gabarit commun, pages de la poche, pages détaillées.
 
-## Sous-lot 2b — aides au choix
+## Sous-lot 2b — choisir mon ETF
 
-- Deux fichiers de données dans le dépôt, sans donnée personnelle :
-  `docs/references/courtiers-pea.json` et `docs/references/etf-monde-pea.json`.
-  Chaque fait (frais par ordre, droits de garde, frais de gestion, prix de
-  part, encours, éligibilité, indice, réplication, capitalisant) porte
-  `valeur`, `source` (URL) et `releve_le`. Constitués par Claude à partir
-  des pages des émetteurs et des grilles tarifaires, relus par Emmanuel.
-- Pages `/choisir/pea` et `/choisir/etf` : les critères et leur poids pour
-  l'usage réel (montant mensuel, nombre d'ordres par an, ETF visé), un
-  **coût annuel estimé** par candidat, les faits avec leur date, une
-  alerte quand un fait a plus de six mois, et une recommandation rédigée
-  depuis ces chiffres (L1-3), marquée aide à la décision.
-- Règles portées : un seul PEA par personne ; un seul ETF monde suffit.
+Cadré le 23/10/2026 (décisions L2b-1 à L2b-3, Emmanuel).
+
+- **L2b-1 — Claude rédige la recommandation**, texte codé en repli (comme
+  L1-3 ; choix d'Emmanuel contre ma recommandation d'un texte codé seul).
+  La charge utile est une **seconde liste fermée** (`CLES_CHARGE_UTILE_ETF`)
+  : candidats (nom, indice, réplication, frais courants, prix de part,
+  encours, capitalisant), coût estimé de chacun, versement mensuel,
+  horizon, rendement estimé. Ni libellé de ligne, ni immobilier, ni
+  identité. Même cache par empreinte, même recul après échec, même mention.
+- **L2b-2 — Pas de page « Choisir mon PEA »** : le PEA est choisi
+  (BoursoBank). Les frais du courtier retenu entrent comme **faits du
+  fichier ETF** (frais par ordre selon le montant, sélection sans frais à
+  l'achat, minimum par ordre), avec source et date comme les autres.
+- **L2b-3 — Candidats : les ETF MSCI World éligibles au PEA, et eux seuls**
+  (tous en réplication synthétique, c'est la condition de l'éligibilité) :
+  WPEA (iShares), DCAM (Amundi PEA Monde), CW8 (Amundi MSCI World Swap), et
+  l'ex-EWLD migré, si sa fiche officielle le confirme encore éligible. Pas
+  de S&P 500 ni de Nasdaq : la classe visée est « actions monde ».
+- Un seul fichier de données, `docs/references/etf-monde-pea.json`, sans
+  donnée personnelle ; chaque fait porte `valeur`, `source` (URL de
+  l'émetteur, d'Euronext ou de la brochure tarifaire) et `releve_le`.
+  Relevé par Claude sur les pages **officielles** (jamais un comparateur),
+  relu par Emmanuel. Rien ne le met à jour automatiquement (S10).
+- Page `/choisir/etf` : hypothèses **pré-remplies depuis le point de
+  départ** (versement mensuel, horizon, rendement estimé) et modifiables
+  dans la page sans rien écrire ; par candidat, le **coût de la première
+  année** (frais d'ordre × 12 + frais courants sur l'encours moyen) et le
+  **coût cumulé sur l'horizon** (trajectoire du lot 1, frais courants
+  prélevés chaque année) ; un candidat dont le prix de part dépasse le
+  versement mensuel est signalé « pas achetable chaque mois » ; chaque
+  fait montre sa date ; alerte quand un fait a plus de six mois.
+- Liens : depuis Lignes (« quel ETF ? ») et Allocation.
+- Règles portées : un seul ETF monde suffit ; la recommandation ne vend
+  jamais une ligne existante, elle dit où va le prochain versement.
+
+### Seams du 2b
+
+| Seam | Comportement garanti |
+|---|---|
+| S-L2-5 | Coût première année et coût cumulé : fonctions pures, fractions exactes, vérifiées sur un exemple calculé à la main |
+| S-L2-6 | Un fait de plus de six mois est signalé ; un fait sans source ou sans date fait échouer le chargement du fichier (test + validateur) |
+| S-L2-7 | La charge utile ETF est exactement `CLES_CHARGE_UTILE_ETF` ; aucun libellé de ligne, aucune donnée immobilière |
+| S-L2-8 | Le fichier de données ne contient aucune donnée personnelle (validateur) et ses candidats sont tous éligibles au PEA |
+
+### Hors 2b, explicitement
+
+- Page PEA, comparatif de courtiers (L2b-2).
+- ETF hors MSCI World, ETF obligataires (L2b-3).
+- Relevé automatique des tarifs et des encours (S10 : rien ne lit un site
+  de courtier ; les faits se relèvent à la main, datés).
+- Tout ordre, toute écriture chez le courtier.
 
 ### Précisé au développement (2a)
 
