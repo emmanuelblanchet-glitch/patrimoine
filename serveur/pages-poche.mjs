@@ -71,7 +71,7 @@ export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) 
         <td>${echapper(l.libelle)}<span class="sous">${echapper(LIBELLES_TYPE[l.enveloppeType] ?? l.enveloppeType)} · ${echapper(LIBELLES_CLASSE_LIGNE[l.classe])}${l.classe === 'mixte' ? ` (${pct(l.partActionsPb)} actions)` : ''}${l.symboleCours ? ` · ${echapper(l.symboleCours)}${l.position ? `, ${l.position.partsMillioniemes / 1_000_000} parts` : ''}` : ''}</span></td>
         <td class="num">${l.valorisee ? euros(l.valeurCentimes) : '—'}</td>
         <td class="num">${l.plusValue ? `${signe(l.plusValue.centimes)}${euros(l.plusValue.centimes)}<span class="sous">${signe(l.plusValue.pb)}${pct(l.plusValue.pb)}</span>` : '—'}</td>
-        <td>${l.valeur ? `${tagStatut(l.valeur.statut)} <small>${echapper(l.valeur.source)}, ${dateEtAge(l.valeur)}</small>` : l.symboleCours ? `${tag('manque', 'pas de cours')}` : tag('manque', 'non valorisé')}${etatCote(l)}</td>
+        <td>${l.valeur ? `${tagStatut(l.valeur.statut)} <small>${echapper(l.valeur.source)}, ${dateEtAge(l.valeur)}</small>` : l.cours ? `<small>cours ${euros(l.cours.centimes)} le ${dateFr(l.cours.date)}, aucune part encore</small>` : l.symboleCours ? `${tag('manque', 'pas de cours')}` : tag('manque', 'non valorisé')}${etatCote(l)}</td>
       </tr>`).join('')
     : '<tr><td colspan="4" class="vide">Aucune ligne encore. <a href="/lignes">Classer ou créer des lignes</a>.</td></tr>';
   const rendementHtml = rendement.pb === null
