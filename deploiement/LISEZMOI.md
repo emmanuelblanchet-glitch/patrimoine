@@ -72,7 +72,7 @@ ssh vps-memoire '~/patrimoine/depot/deploiement/sauvegarde-quotidienne.sh'
 ssh vps-memoire 'F=$(ls -t ~/backups/patrimoine/base/*.chiffre | head -1); docker run --rm --network none --read-only --tmpfs /tmp --env-file ~/patrimoine/sauvegarde.env -v ~/backups/patrimoine/base:/sauvegardes:ro patrimoine:local node scripts/sauvegarder.mjs restaurer "/sauvegardes/$(basename "$F")" /tmp/essai.db'
 ```
 
-Résultat attendu de la dernière commande : `Base restaurée : /tmp/essai.db (12 tables)`
+Résultat attendu de la dernière commande : `Base restaurée : /tmp/essai.db (11 tables)`
 (la copie d'essai disparaît avec le conteneur).
 
 ## 7. Retirer l'agent du Mac, épingler sur l'iPhone

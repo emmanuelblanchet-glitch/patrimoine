@@ -97,8 +97,8 @@
   <h2>De quoi c'est fait</h2>
   <div class="flux">
     <div class="brique">
-      <h3>Navigateur du Mac</h3>
-      <span class="ou">pages HTML rendues par le serveur</span>
+      <h3>Navigateur du Mac ou de l'iPhone</h3>
+      <span class="ou">par le réseau privé Tailscale, en HTTPS</span>
       <ul>
         <li>aucun script côté client, une feuille de style</li>
         <li>formulaires classiques, réponse 303 puis réaffichage</li>
@@ -106,10 +106,11 @@
     </div>
     <div class="fleche">↔</div>
     <div class="brique">
-      <h3>Serveur local</h3>
-      <span class="ou">Node natif, <code>serveur/</code></span>
+      <h3>Serveur, sur le VPS</h3>
+      <span class="ou">conteneur Node natif, <code>serveur/</code></span>
       <ul>
-        <li>écoute sur <code>127.0.0.1</code> seulement, l'hôte n'est pas réglable</li>
+        <li>écoute sur <code>127.0.0.1</code> de l'hôte seulement ; <code>tailscale serve</code> le relaie en HTTPS sur le réseau privé, rien n'est exposé sur Internet</li>
+        <li>une porte avant toute page : identité Tailscale, phrase de passe, session de trente jours par appareil</li>
         <li>lit les formulaires (<code>saisie.mjs</code>), appelle le référentiel, rend les pages</li>
         <li>sert <code>public/</code> et rien d'autre</li>
       </ul>
@@ -117,11 +118,12 @@
     <div class="fleche">↔</div>
     <div class="brique">
       <h3>Base SQLite</h3>
-      <span class="ou"><code>PATRIMOINE_DB</code>, hors du dépôt</span>
+      <span class="ou">sur le VPS, hors du dépôt</span>
       <ul>
         <li>tables : profil, objectif, allocation cible, enveloppe, actif (classe, symbole de cotation unique par enveloppe), passif, valorisation, transactions, cours, explication (cache)</li>
         <li>migrations numérotées, rejouables, figées une fois publiées</li>
         <li>contraintes en base : source et statut obligatoires, transactions immuables</li>
+        <li>sauvegardée chaque nuit, chiffrée, gardée trente jours, rapatriée sur le Mac chaque matin</li>
       </ul>
     </div>
   </div>
@@ -174,7 +176,6 @@
       <h3>Pas encore</h3>
       <span class="ou">lots suivants</span>
       <ul>
-        <li>accès iPhone, mot de passe, VPS, sauvegarde chiffrée</li>
         <li>orientations d'actualité ; échéanciers et fiscalité de l'immobilier, plus tard</li>
       </ul>
     </div>
@@ -199,9 +200,26 @@
     <div class="brique garde">
       <h3>Une écriture ne vient que d'une page de l'outil</h3>
       <ul>
-        <li>en-tête <code>Host</code> local exigé (rebond DNS)</li>
+        <li>en-tête <code>Host</code> exigé : l'adresse du réseau privé, et elle seule (rebond DNS, accès direct au port)</li>
         <li>en-tête <code>Origin</code> égal au serveur exigé sur tout POST (formulaire tiers)</li>
         <li>corps limité à 64 Ko, méthodes limitées à GET, HEAD, POST</li>
+      </ul>
+    </div>
+    <div class="brique garde">
+      <h3>Une seule porte, sur le réseau privé</h3>
+      <ul>
+        <li>le relais doit dire HTTPS et porter l'identité Tailscale du seul utilisateur, sinon refus avant toute page</li>
+        <li>la phrase de passe n'est stockée nulle part : seule son empreinte vit dans l'environnement du conteneur</li>
+        <li>cinq essais ratés par source, ou vingt au total, suspendent les essais dix minutes ; changer la phrase déconnecte tous les appareils</li>
+        <li>sur le VPS, le mode public est déclaré par le fichier de lancement : sans lui, le serveur refuse de démarrer</li>
+      </ul>
+    </div>
+    <div class="brique garde">
+      <h3>Une sauvegarde par nuit, chiffrée</h3>
+      <ul>
+        <li>copie cohérente de la base, chiffrée (AES-256) par un conteneur éphémère sans réseau</li>
+        <li>la phrase de sauvegarde vit à part, hors du serveur, et dans le gestionnaire de mots de passe</li>
+        <li>une sauvegarde altérée ou une mauvaise phrase est refusée ; la restauration n'écrase jamais une base</li>
       </ul>
     </div>
     <div class="brique garde">
@@ -225,7 +243,8 @@
   <h2>Points d'attention</h2>
   <div class="tablewrap"><table>
     <tr><th>État</th><th>Conséquence</th></tr>
-    <tr><td>Pas d'authentification</td><td>Le serveur n'est joignable que depuis le Mac ; toute personne devant le Mac peut lire et écrire. Mot de passe et réseau privé au lot 3.</td></tr>
+    <tr><td>La phrase de passe tient la porte</td><td>Un autre appareil est enregistré sur le même compte Tailscale : l'identité réseau ne le distingue pas. Une règle d'accès par appareil dans la console Tailscale serait une ceinture de plus.</td></tr>
+    <tr><td>L'outil vit sur le VPS</td><td>VPS arrêté ou Tailscale coupé = outil indisponible, sur le Mac comme sur l'iPhone. Le VPS porte aussi les cerveaux mémoire ; le conteneur est plafonné à 256 Mo.</td></tr>
     <tr><td>Les cours viennent d'une source non officielle</td><td>Yahoo Finance peut cesser de répondre sans préavis ; l'outil garde le dernier cours avec sa date et le dit. Yahoo apprend quel ETF est suivi, pas combien. Seules les lignes cotées en euros sont suivies.</td></tr>
     <tr><td>Les faits du choix d'ETF vieillissent</td><td>Frais, encours, grille du courtier et partenariats changent ; rien ne les relève tout seul. La page signale tout fait de plus de six mois, et le coût affiché est une estimation.</td></tr>
     <tr><td>Les lignes sans cours sont saisies à la main</td><td>Livret, fonds euros, PEE : la valeur vieillit entre deux saisies ; l'âge affiché le rappelle.</td></tr>
@@ -234,7 +253,7 @@
     <tr><td>L'argumentation coûte un appel par situation</td><td>Chaque changement de la poche déclenche une rédaction ; même situation, même texte, sans nouvel appel.</td></tr>
     <tr><td>Pas de modification ni de suppression</td><td>Une saisie fausse se corrige par une nouvelle valorisation à la même date (la dernière saisie fait foi) ; un achat s'annule depuis Mouvement, un versement ne se corrige pas encore à l'écran.</td></tr>
     <tr><td>Le PEE est une ligne globale</td><td>Pas de détail par fonds ni d'import de relevé avant la V1.</td></tr>
-    <tr><td>Une sauvegarde est un fichier à part</td><td>Rien ne sauvegarde la base automatiquement avant le lot 3.</td></tr>
+    <tr><td>Les sauvegardes dépendent d'une phrase</td><td>Sans la phrase de sauvegarde rangée dans le gestionnaire de mots de passe, aucune sauvegarde ne se restaure. La restauration se vérifie par une commande du pas-à-pas.</td></tr>
   </table></div>
 
   <div class="legende"><span>brique en service</span><span class="g">garde-fou</span><span class="h">pas encore construit</span></div>
