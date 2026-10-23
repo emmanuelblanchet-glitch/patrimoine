@@ -2,8 +2,9 @@
 // champs tapés et rendent { donnees, motifs }. Le référentiel valide ensuite
 // les règles du domaine ; ici, on ne fait que lire.
 
-import { lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte, lireParts } from '../lib/saisie.mjs';
+import { lireMontant, lireMontantFacultatif, lireQuotePart, lireTauxPb, lireDate, lireEntier, lireTexte, lireParts } from '../lib/saisie.mjs';
 import { PART_ACTIONS_PAR_DEFAUT_PB } from '../lib/allocation.mjs';
+import { BORNES_HYPOTHESES } from '../lib/choix-etf.mjs';
 
 function lecteur(champs) {
   const motifs = [];
@@ -124,6 +125,26 @@ export function lireFormulaireAjoutLigne(champs) {
     donnees: { symbole: texte('symbole'), nom: texte('nom'), nature: texte('nature'), enveloppeId: id(champs.enveloppe_id), classe: texte('classe') },
     motifs,
   };
+}
+
+/**
+ * Les hypothèses de « Choisir mon ETF », depuis la requête GET : chaque
+ * champ absent reste null (le routeur prend alors le point de départ) ;
+ * présent, il doit être lisible et dans ses bornes. Rien n'est écrit.
+ */
+export function lireFormulaireHypotheses(champs) {
+  const { motifs, lire } = lecteur(champs);
+  const borne = (nom, valeur, libelle) => {
+    const b = BORNES_HYPOTHESES[nom];
+    if (valeur != null && (valeur < b.min || valeur > b.max)) { motifs.push(`${libelle} : entre ${b.texte}`); return null; }
+    return valeur;
+  };
+  const donnees = {
+    versementCentimes: 'versement' in champs ? borne('versementCentimes', lire(lireMontant, 'versement', 'Versement mensuel'), 'Versement mensuel') : null,
+    horizonAnnees: 'horizon' in champs ? borne('horizonAnnees', lire(lireEntier, 'horizon', 'Horizon'), 'Horizon') : null,
+    rendementPb: 'rendement' in champs ? borne('rendementPb', lire(lireTauxPb, 'rendement', 'Rendement estimé'), 'Rendement estimé') : null,
+  };
+  return { donnees, motifs };
 }
 
 /** Annuler un achat erroné : son identifiant seul ; la date est celle du jour. */

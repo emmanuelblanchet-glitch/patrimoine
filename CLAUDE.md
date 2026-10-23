@@ -37,7 +37,7 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 9. **Claude met en mots, il ne décide rien** (lot 1, L1-3) : les chiffres
    viennent des règles codées ; ce qui part vers l'API est exactement la
    liste de `CLES_CHARGE_UTILE` (ni libellés, ni immobilier détaillé, ni
-   identité — testé) ; texte mis en cache par empreinte ; sans clé, sans
+   identité — testé), ou `CLES_CHARGE_UTILE_ETF` pour « Choisir mon ETF » ; texte mis en cache par empreinte ; sans clé, sans
    réseau ou en erreur, un texte de repli s'affiche et la page ne dépend
    jamais de l'appel. L'appel est en lecture seule, sans outil.
 10. **La saisie est un parcours en français**, jamais des champs du modèle
@@ -56,15 +56,20 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
   alimentées ; `explication.mjs` charge utile minimale, empreinte, texte de
   repli (S-L1-3/4/5) ; `cours.mjs` cours idempotents et valorisation parts ×
   cours (S-L2-2) ; `performance.mjs` plus-value et TRI (S-L2-3) ;
+  `references.mjs` lit et vérifie le fichier de faits datés et sourcés
+  (S-L2-6, S-L2-8) ; `choix-etf.mjs` coût des candidats, classement, charge
+  utile fermée `CLES_CHARGE_UTILE_ETF` et repli (S-L2-5, S-L2-7) ;
   `fraction.mjs`, `saisie.mjs`, `format.mjs`.
 - `collecteurs/` — ce qui lit l'extérieur, isolé des moteurs : `yahoo.mjs`
   (parseurs purs testés sur fixtures + GET du symbole seul, S-L2-1, S10).
 - `serveur/` — serveur local (Node `http`, 127.0.0.1 seulement, l'hôte
   n'est pas réglable) : `config.mjs` refuse une base dans le dépôt ;
   `application.mjs` gardes Host/Origin, routes, statiques ; `gabarit.mjs`,
-  `pages-poche.mjs`, `pages-details.mjs` HTML échappé ; `formulaires.mjs` ;
+  `pages-poche.mjs`, `pages-details.mjs`, `pages-choix.mjs` HTML échappé ;
+  `formulaires.mjs` ;
   `claude.mjs` (API Messages, `fetch` natif, clé `ANTHROPIC_API_KEY`) ;
-  `explications.mjs` cache + appel en arrière-plan + repli ; `cours.mjs`
+  `explications.mjs` cache + appel en arrière-plan + repli, un fournisseur
+  par sujet (poche, etf) ; `cours.mjs`
   rafraîchissement des cours en arrière-plan (20 h, recul 1 h) ;
   `demarrer.mjs` point d'entrée. Les deux seuls appels sortants : Anthropic
   (texte) et Yahoo Finance (cours, GET du symbole).
@@ -72,6 +77,9 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
   extensions allowlistées). Polices embarquées : jamais chargées d'un tiers.
 - `docs/design/reglages.json` — le système de design retenu par Emmanuel
   dans l'atelier ; `public/style.css` en dérive.
+- `docs/references/etf-monde-pea.json` — les faits de « Choisir mon ETF »
+  (candidats et courtier), chacun avec source officielle et date de relevé ;
+  relevés à la main, jamais par un collecteur ; aucune donnée personnelle.
 - `scripts/valider.mjs` — validateur d'état ; `.githooks/pre-commit` = **le**
   gate bloquant (la protection de branche GitHub n'est pas appliquée sur les
   dépôts privés du plan, constat jarvis 12/08/2026).

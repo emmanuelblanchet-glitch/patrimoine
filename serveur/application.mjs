@@ -20,19 +20,23 @@ import {
   validerAchat, enregistrerAchat, annulerAchat, lireAchats, validerLigneCotee, creerLigneCotee,
 } from '../lib/referentiel.mjs';
 import { calculerBilan } from '../lib/bilan.mjs';
-import { lireDate } from '../lib/saisie.mjs';
 import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne, validerClasse } from '../lib/objectif.mjs';
 import { etatDeLaPoche } from '../lib/poche.mjs';
 import { aujourdhuiLocal } from '../lib/format.mjs';
 import { creerRafraichisseur } from './cours.mjs';
 import {
   lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation,
-  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation,
+  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation, lireFormulaireHypotheses,
 } from './formulaires.mjs';
 import { pageErreur } from './gabarit.mjs';
 import { pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages } from './pages-poche.mjs';
 import { pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations } from './pages-details.mjs';
+import { pageChoisirEtf } from './pages-choix.mjs';
 import { creerFournisseur } from './explications.mjs';
+import { chargerReferences, faitsPerimes } from '../lib/references.mjs';
+import { classer, chargeUtileEtf, texteDeRepliEtf, messagesPourClaudeEtf, HYPOTHESES_NEUTRES } from '../lib/choix-etf.mjs';
+import { empreinte } from '../lib/explication.mjs';
+import { lireDate } from '../lib/saisie.mjs';
 
 const DOSSIER_PUBLIC = join(RACINE_DEPOT, 'public');
 const TYPES_STATIQUES = {
@@ -178,7 +182,7 @@ async function servirStatique(res, nom) {
 /**
  * @param {{ base, hotesAutorises: () => string[], aujourdhui?: () => string }} options
  */
-function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
+function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
   const ctxDe = () => contexte(base, aujourdhui(), cleClaude, rafraichisseur);
   return async (req, res) => {
     try {
@@ -213,6 +217,26 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
         if (chemin === '/allocation') {
           const ctx = ctxDe();
           return envoyer(res, 200, pageAllocation({ poche: ctx.poche, cible: ctx.cible, enveloppes: ctx.etat.enveloppes }));
+        }
+        if (chemin === '/choisir/etf') {
+          const objectif = lireObjectif(base);
+          const champs = Object.fromEntries(url.searchParams);
+          const { donnees, motifs } = lireFormulaireHypotheses(champs);
+          const depart = objectif
+            ? { versementCentimes: objectif.epargneMensuelleCentimes, horizonAnnees: objectif.horizonAnnees, rendementPb: objectif.rendementEstimePb }
+            : HYPOTHESES_NEUTRES;
+          const hypotheses = Object.fromEntries(Object.entries(depart).map(([k, v]) => [k, donnees[k] ?? v]));
+          const classement = classer(references, hypotheses);
+          const charge = chargeUtileEtf(references, classement, hypotheses);
+          // Claude ne rédige que pour les hypothèses du point de départ : une
+          // seule situation, un seul appel — jamais un appel par valeur tapée
+          // dans l'adresse (revue sécurité du 2b).
+          const modifiees = Object.values(donnees).some((v) => v != null);
+          const explication = modifiees
+            ? { texte: texteDeRepliEtf(charge), origine: 'repli', raison: 'hypotheses_modifiees' }
+            : fournisseurEtf.obtenir(charge, empreinte(charge));
+          const jour = aujourdhui();
+          return envoyer(res, motifs.length ? 400 : 200, pageChoisirEtf({ references, classement, explication, hypotheses, perimes: faitsPerimes(references, jour), aujourdhui: jour }, { valeurs: champs, motifs }));
         }
         if (chemin === '/reglages') {
           const ctx = ctxDe();
@@ -265,7 +289,7 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
 }
 
 /** Démarre le serveur, uniquement sur 127.0.0.1. `port: 0` choisit un port libre (tests). */
-export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours }) {
+export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours, references = chargerReferences() }) {
   return new Promise((resoudre, rejeter) => {
     const serveur = createServer();
     const hotesAutorises = () => {
@@ -273,8 +297,9 @@ export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => proc
       return [`${HOTE}:${p}`, `localhost:${p}`];
     };
     const fournisseur = creerFournisseur({ base, cle: cleClaude, rediger });
+    const fournisseurEtf = creerFournisseur({ base, cle: cleClaude, rediger, sujet: 'etf', repli: texteDeRepliEtf, messages: messagesPourClaudeEtf });
     const rafraichisseur = creerRafraichisseur({ base, ...(fetchCours ? { fetchImpl: fetchCours } : {}) });
-    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, rafraichisseur, cleClaude }));
+    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude }));
     serveur.once('error', rejeter);
     serveur.listen(port, HOTE, () => resoudre(serveur));
   });

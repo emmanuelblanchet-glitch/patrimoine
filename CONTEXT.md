@@ -99,6 +99,27 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
   « j'ai versé » (ligne sans cours), et d'où l'on annule un achat.
 - **Flux** : tout argent entré dans la poche, daté et signé — versements,
   achats, abondements, annulations ; le rendement en vit.
+
+## Choisir mon ETF (sous-lot 2b)
+
+- **Candidat** : un ETF MSCI World éligible au PEA, décrit par des faits ;
+  quatre aujourd'hui (`docs/references/etf-monde-pea.json`).
+- **Fait** : une valeur relevée sur une page officielle, avec sa **source**
+  (URL) et sa **date de relevé** ; sans l'une ou l'autre, le fichier ne se
+  charge pas. **Périmé** au-delà de 183 jours : signalé, jamais caché.
+- **Courtier retenu** : BoursoBank, formule Découverte ; ses frais sont des
+  faits du même fichier. Le PEA est choisi, il n'y a pas de page PEA.
+- **Hypothèses** : versement mensuel, horizon, rendement estimé — pré-remplies
+  depuis le point de départ, modifiables dans la page, jamais écrites. Claude
+  ne rédige que pour celles du point de départ ; modifiées, le texte codé suffit.
+- **Coût de première année** / **coût sur l'horizon** : courtage de chaque
+  ordre + frais courants prélevés sur l'encours, simulés mois par mois ;
+  une estimation.
+- **Achetable chaque mois** : une part au moins par versement, et le minimum
+  d'ordre du courtier atteint. Sinon l'argent attend, et le candidat est
+  classé après les autres.
+- **Recommandé** : le candidat achetable chaque mois le moins coûteux sur
+  l'horizon (à égalité, le plus gros encours). Un seul ETF monde suffit.
 - **Valeur d'une ligne cotée** = parts × dernier cours ; elle l'emporte sur
   une valeur saisie du même jour.
 - **Plus-value** : valeur du jour − coût d'acquisition, en euros et en %.

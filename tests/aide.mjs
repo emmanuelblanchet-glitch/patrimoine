@@ -6,6 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ouvrirBase } from '../lib/base.mjs';
 
+/** Les montants formatés portent des espaces insécables : on les aplatit pour comparer. */
+export const normaliser = (texte) => texte.replace(/[\u00a0\u202f]/g, ' ');
+
 export function baseJetable() {
   const dossier = mkdtempSync(join(tmpdir(), `patrimoine-test-${process.pid}-`));
   const chemin = join(dossier, 'patrimoine.db');

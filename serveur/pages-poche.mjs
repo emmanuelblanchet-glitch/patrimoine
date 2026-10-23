@@ -195,7 +195,7 @@ export function pageAllocation({ poche, cible, enveloppes = [] }) {
   }).join('');
   return gabarit('Allocation', '/allocation', `
 <h1>Mon allocation</h1>
-<p class="sous-titre">La cible de la poche, et l'enveloppe qui accueille chaque part. ${tag('opinion', 'aide à la décision')}</p>
+<p class="sous-titre">La cible de la poche, et l'enveloppe qui accueille chaque part. Pour la part actions, <a href="/choisir/etf">Choisir mon ETF</a> compare les ETF monde éligibles au PEA. ${tag('opinion', 'aide à la décision')}</p>
 <div class="synthese">${blocs}</div>
 <section class="section">
   <h2>La règle, en clair</h2>
@@ -239,7 +239,7 @@ export function pageLignes({ etat, poche }, { valeurs = {}, motifs = [], recherc
 <p class="sous-titre">Chaque ligne de la poche a une classe : actions monde, sans risque, ou mixte. C'est elle qui décide où va ton versement.${cinqAns ? ` PEA : avantages fiscaux acquis le ${dateFr(cinqAns)}.` : ''}</p>
 <section class="section" style="margin-top:0">
 <h2>Ajouter une ligne cotée</h2>
-<p class="aide">Tape le code ISIN (douze caractères, sur la fiche du fonds) ou le symbole de cotation ; l'outil retrouve le nom et la place, tu choisis l'enveloppe et la classe.</p>
+<p class="aide">Tape le code ISIN (douze caractères, sur la fiche du fonds) ou le symbole de cotation ; l'outil retrouve le nom et la place, tu choisis l'enveloppe et la classe. Lequel ? <a href="/choisir/etf">Choisir mon ETF</a> compare les ETF monde éligibles au PEA pour ton rythme.</p>
 ${enveloppesCotees.length ? `<form method="get" action="/lignes" class="date">${champ('q', 'Code ISIN ou symbole', { q: recherche?.q ?? '' }, { requis: true })}<button>Chercher</button></form>${resultats}` : '<p class="vide">Il faut d\'abord une enveloppe qui accueille des titres (PEA, compte-titres, assurance-vie) : coche-la au <a href="/depart">point de départ</a>.</p>'}
 </section>
 <div class="table"><table>
@@ -324,6 +324,6 @@ export function pageReglages({ objectif, cible, cleClaude }) {
 </div>
 <section class="section">
   <h2>Argumentation par Claude</h2>
-  <div class="carte"><p>${cleClaude ? `${tag('fait', 'clé présente')} Les textes sont rédigés par Claude et mis en cache tant que la situation ne change pas.` : `${tag('manque', 'pas de clé')} Sans <code>ANTHROPIC_API_KEY</code> dans l'environnement du serveur, l'outil affiche un texte de repli écrit depuis les mêmes chiffres.`}</p><p class="source">Ce qui part : la cible, les poids actuels, le versement et sa répartition (avec l'enveloppe visée, ou à ouvrir), l'horizon et le plancher. Rien d'autre : ni valeur de la poche, ni immobilier, ni libellé, ni identité.</p></div>
+  <div class="carte"><p>${cleClaude ? `${tag('fait', 'clé présente')} Les textes sont rédigés par Claude et mis en cache tant que la situation ne change pas.` : `${tag('manque', 'pas de clé')} Sans <code>ANTHROPIC_API_KEY</code> dans l'environnement du serveur, l'outil affiche un texte de repli écrit depuis les mêmes chiffres.`}</p><p class="source">Ce qui part pour Ma poche : la cible, les poids actuels, le versement et sa répartition (avec l'enveloppe visée, ou à ouvrir), l'horizon et le plancher. Pour Choisir mon ETF : les candidats et leurs faits chiffrés, leurs coûts, le versement mensuel, l'horizon, le rendement estimé, le recommandé. Rien d'autre : ni valeur de la poche, ni immobilier, ni libellé de ligne, ni identité.</p></div>
 </section>`);
 }

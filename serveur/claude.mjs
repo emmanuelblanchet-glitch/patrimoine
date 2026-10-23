@@ -16,12 +16,12 @@ const DELAI_MS = 45_000;
 
 /**
  * @param {object} charge  la charge utile minimale (lib/explication.mjs)
- * @param {{ cle?: string, workspaceId?: string, fetchImpl?: typeof fetch, modele?: string }} options
+ * @param {{ cle?: string, workspaceId?: string, fetchImpl?: typeof fetch, modele?: string, messages?: (charge) => { system: string, user: string } }} options
  * @returns {Promise<{ ok: true, texte: string, modele: string } | { ok: false, raison: string }>}
  */
-export async function redigerExplication(charge, { cle = process.env.ANTHROPIC_API_KEY, workspaceId = process.env.ANTHROPIC_WORKSPACE_ID, fetchImpl = fetch, modele = MODELE } = {}) {
+export async function redigerExplication(charge, { cle = process.env.ANTHROPIC_API_KEY, workspaceId = process.env.ANTHROPIC_WORKSPACE_ID, fetchImpl = fetch, modele = MODELE, messages = messagesPourClaude } = {}) {
   if (!cle) return { ok: false, raison: 'sans_cle' };
-  const { system, user } = messagesPourClaude(charge);
+  const { system, user } = messages(charge);
   const corps = {
     model: modele,
     max_tokens: 1024,

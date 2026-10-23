@@ -125,3 +125,10 @@ button { font: inherit; font-weight: 500; padding: 9px 18px; border: 0; border-r
 /* Bouton d'action secondaire dans un tableau (annuler un achat). */
 button.discret { background: none; color: var(--encre-2); border: 1px solid var(--trait); padding: 2px 10px; font-size: 0.9em; box-shadow: none; }
 button.discret:hover { color: var(--encre); border-color: var(--encre-2); }
+
+/* Choisir mon ETF : la ligne recommandée et la liste des faits. */
+tr.reco td { background: var(--accent-fond); }
+ul.faits { padding-left: 18px; font-size: 0.92em; }
+ul.faits li { margin: 0 0 var(--esp-2); }
+/* La CSP refuse les styles en attribut : les marges passent par des classes. */
+.espace-dessous { margin-bottom: var(--esp-3); }

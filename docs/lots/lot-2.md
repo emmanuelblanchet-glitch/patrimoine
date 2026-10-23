@@ -84,20 +84,105 @@ Lignes. Aucune règle bloquante au lot 2 : il n'y a pas de vente.
   de repli) ; la date de la page en **heure locale** ; `pages.mjs` scindé
   en gabarit commun, pages de la poche, pages détaillées.
 
-## Sous-lot 2b — aides au choix
+## Sous-lot 2b — choisir mon ETF
 
-- Deux fichiers de données dans le dépôt, sans donnée personnelle :
-  `docs/references/courtiers-pea.json` et `docs/references/etf-monde-pea.json`.
-  Chaque fait (frais par ordre, droits de garde, frais de gestion, prix de
-  part, encours, éligibilité, indice, réplication, capitalisant) porte
-  `valeur`, `source` (URL) et `releve_le`. Constitués par Claude à partir
-  des pages des émetteurs et des grilles tarifaires, relus par Emmanuel.
-- Pages `/choisir/pea` et `/choisir/etf` : les critères et leur poids pour
-  l'usage réel (montant mensuel, nombre d'ordres par an, ETF visé), un
-  **coût annuel estimé** par candidat, les faits avec leur date, une
-  alerte quand un fait a plus de six mois, et une recommandation rédigée
-  depuis ces chiffres (L1-3), marquée aide à la décision.
-- Règles portées : un seul PEA par personne ; un seul ETF monde suffit.
+Cadré le 23/10/2026 (décisions L2b-1 à L2b-3, Emmanuel).
+
+- **L2b-1 — Claude rédige la recommandation**, texte codé en repli (comme
+  L1-3 ; choix d'Emmanuel contre ma recommandation d'un texte codé seul).
+  La charge utile est une **seconde liste fermée** (`CLES_CHARGE_UTILE_ETF`)
+  : candidats (nom, indice, réplication, frais courants, prix de part,
+  encours, capitalisant), coût estimé de chacun, versement mensuel,
+  horizon, rendement estimé. Ni libellé de ligne, ni immobilier, ni
+  identité. Même cache par empreinte, même recul après échec, même mention.
+- **L2b-2 — Pas de page « Choisir mon PEA »** : le PEA est choisi
+  (BoursoBank). Les frais du courtier retenu entrent comme **faits du
+  fichier ETF** (frais par ordre selon le montant, sélection sans frais à
+  l'achat, minimum par ordre), avec source et date comme les autres.
+- **L2b-3 — Candidats : les ETF MSCI World éligibles au PEA, et eux seuls**
+  (tous en réplication synthétique, c'est la condition de l'éligibilité) :
+  WPEA (iShares), DCAM (Amundi PEA Monde), CW8 (Amundi MSCI World Swap), et
+  l'ex-EWLD migré, si sa fiche officielle le confirme encore éligible. Pas
+  de S&P 500 ni de Nasdaq : la classe visée est « actions monde ».
+- Un seul fichier de données, `docs/references/etf-monde-pea.json`, sans
+  donnée personnelle ; chaque fait porte `valeur`, `source` (URL de
+  l'émetteur, d'Euronext ou de la brochure tarifaire) et `releve_le`.
+  Relevé par Claude sur les pages **officielles** (jamais un comparateur),
+  relu par Emmanuel. Rien ne le met à jour automatiquement (S10).
+- Page `/choisir/etf` : hypothèses **pré-remplies depuis le point de
+  départ** (versement mensuel, horizon, rendement estimé) et modifiables
+  dans la page sans rien écrire ; par candidat, le **coût de la première
+  année** (frais d'ordre × 12 + frais courants sur l'encours moyen) et le
+  **coût cumulé sur l'horizon** (trajectoire du lot 1, frais courants
+  prélevés chaque année) ; un candidat dont le prix de part dépasse le
+  versement mensuel est signalé « pas achetable chaque mois » ; chaque
+  fait montre sa date ; alerte quand un fait a plus de six mois.
+- Liens : depuis Lignes (« quel ETF ? ») et Allocation.
+- Règles portées : un seul ETF monde suffit ; la recommandation ne vend
+  jamais une ligne existante, elle dit où va le prochain versement.
+
+### Précisé au développement (2b)
+
+- Faits relevés le 23/10/2026 sur les pages officielles : iShares (page
+  produit, actif net au 22/10), Amundi (reportings mensuels au 31/08 et au
+  30/09, extraits du PDF), brochure tarifaire BoursoBank du 05/10/2026
+  (p. 20 et 23), page Boursomarkets ; prix de part = clôture Euronext du
+  22/10 relevée sur Yahoo Finance. ⚠️ La fiche Boursorama affiche 0,28 %
+  « maximum » pour CW8 et EWLD ; le reporting Amundi dit 0,38 % — l'émetteur
+  fait foi. ⚠️ Chez BoursoBank, seul **Amundi** est partenaire Boursomarkets
+  (0 € à l'achat) ; WPEA (iShares) paie le courtage Découverte, plafonné à
+  0,5 % sur PEA.
+- Coût simulé mois par mois en centimes : l'argent attend tant qu'une part
+  n'est pas achetable (ou sous le minimum d'ordre), le courtage est retenu
+  sur l'ordre, le capital croît au rendement mensuel puis paie un douzième
+  des frais courants. Même convention de rendement que la trajectoire.
+- Le cache des explications porte un **sujet** (migration 4) : la poche et
+  l'ETF n'épurent que le leur — sinon chaque page aurait effacé le texte de
+  l'autre et relancé un appel.
+- Les hypothèses hors bornes ou illisibles répondent 400 avec le motif, la
+  page reste affichée avec les valeurs tapées.
+
+### Précisé après la revue (2b)
+
+- **Claude ne rédige que pour les hypothèses du point de départ** : des
+  hypothèses tapées dans l'adresse recalculent la page avec le texte codé,
+  sans appel — sinon chaque valeur distincte aurait coûté un appel, depuis
+  n'importe quelle page ouverte dans le navigateur (revue sécurité).
+- **Fractions exactes** dans la simulation : un douzième du rendement et des
+  frais courants par mois, un seul arrondi au centime par opération ; la
+  trajectoire du lot 1 reste en flottant, elle ne compte pas d'argent.
+- Un candidat non achetable chaque mois dit **la vraie raison** : part plus
+  chère que le versement, ou versement sous le minimum d'ordre du courtier
+  (le minimum entre dans la charge utile).
+- **Catalogue de faits strict** : un fait hors liste fait échouer le
+  chargement — sinon il serait affiché sans avoir été vérifié.
+- La consigne à Claude porte « on ne vend jamais une ligne existante ».
+- **Classement** (né au développement, à la place d'une règle que le cadrage
+  ne fixait pas) : achetables chaque mois d'abord, par coût cumulé croissant,
+  à égalité le plus gros encours ; le premier est recommandé. Sans point de
+  départ, hypothèses neutres (500 €, 10 ans, 5 %) pour que la page vive.
+- ⚠️ Le validateur du dépôt est un fichier verrouillé (non modifiable en
+  session) : il n'a pas été étendu au fichier de références ; les seams
+  S-L2-6 et S-L2-8 tiennent par les tests, joués au pre-commit et en CI.
+- ⚠️ Parqué : les attributs `style=""` de pages-poche (barres d'allocation,
+  marges) sont refusés par la CSP `style-src 'self'` — à passer en classes.
+
+### Seams du 2b
+
+| Seam | Comportement garanti |
+|---|---|
+| S-L2-5 | Coût première année et coût cumulé : fonctions pures, fractions exactes, vérifiées sur un exemple calculé à la main |
+| S-L2-6 | Un fait de plus de six mois est signalé ; un fait sans source ou sans date fait échouer le chargement du fichier (test + validateur) |
+| S-L2-7 | La charge utile ETF est exactement `CLES_CHARGE_UTILE_ETF` ; aucun libellé de ligne, aucune donnée immobilière |
+| S-L2-8 | Le fichier de données ne contient aucune donnée personnelle (validateur) et ses candidats sont tous éligibles au PEA |
+
+### Hors 2b, explicitement
+
+- Page PEA, comparatif de courtiers (L2b-2).
+- ETF hors MSCI World, ETF obligataires (L2b-3).
+- Relevé automatique des tarifs et des encours (S10 : rien ne lit un site
+  de courtier ; les faits se relèvent à la main, datés).
+- Tout ordre, toute écriture chez le courtier.
 
 ### Précisé au développement (2a)
 

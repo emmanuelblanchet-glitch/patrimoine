@@ -11,7 +11,7 @@ import { HOTE } from '../serveur/config.mjs';
 import { appliquerMigrations } from '../lib/schema.mjs';
 import { lireEtat, lirePositions } from '../lib/referentiel.mjs';
 import { lireDerniersCours } from '../lib/cours.mjs';
-import { baseJetable } from './aide.mjs';
+import { baseJetable, normaliser } from './aide.mjs';
 
 const fixture = (nom) => JSON.parse(readFileSync(new URL(`./fixtures/${nom}`, import.meta.url), 'utf8'));
 let jetable;
@@ -53,7 +53,6 @@ function requete({ methode = 'GET', chemin = '/', entetes = {}, corps } = {}) {
   });
 }
 const post = (chemin, champs) => requete({ methode: 'POST', chemin, entetes: { Origin: `http://${HOTE}:${port}` }, corps: new URLSearchParams(champs).toString() });
-const normaliser = (s) => s.replace(/[  ]/g, ' ');
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
 test('point de départ avec un PEA daté : la date des cinq ans s\'affiche', async () => {
