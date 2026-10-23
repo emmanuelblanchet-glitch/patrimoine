@@ -92,6 +92,50 @@ est sauvegardée chaque nuit, chiffrée ; le Mac peut être éteint.
   à rsync, dont la version du Mac est atypique) et **refuse** un dépôt qui
   suivrait une base, un `.env` ou le câblage MCP.
 
+## Précisé après la revue
+
+- **Correction de fait sur la publication** : un serveur lié à `127.0.0.1`
+  *dans* un conteneur n'est pas joignable par un port publié par Docker. Le
+  conteneur tourne donc sur le **réseau de l'hôte** (`network_mode: host`) :
+  le serveur reste lié à `127.0.0.1` (règle du lot 0 intacte, l'adresse
+  d'écoute n'est toujours pas réglable), celui de l'hôte, et
+  `tailscale serve --https=8006` le relaie. Seuls les processus de l'hôte
+  lui-même atteignent ce port, pas les autres conteneurs.
+- **Mode public déclaré** : `PATRIMOINE_MODE=public` est posé par
+  `compose.yml`, pas par le fichier d'environnement ; un réglage manquant, ou
+  des réglages publics sans la déclaration = refus de démarrer. Sur le VPS,
+  le mode local ne peut pas revenir par oubli.
+- **Plafond global d'échecs** : 20 en dix minutes, toutes sources confondues,
+  suspendent les essais pour tout le monde — la source vient d'un en-tête
+  qu'un processus local pourrait forger.
+- **Connexion et déconnexion vérifient l'origine** (`https://<hôte public>`) :
+  une page tierce ouverte dans le navigateur ne peut ni épuiser les essais ni
+  déconnecter.
+- **Sessions révocables** : la signature combine le secret et l'empreinte ;
+  changer la phrase déconnecte tous les appareils.
+- **Phrase saisie sans écho** : `scripts/empreinte-phrase.mjs` la demande au
+  clavier, deux fois, et refuse un tube — elle n'entre jamais dans
+  l'historique du shell.
+- **Sauvegarde hors du conteneur du serveur** : un conteneur éphémère, sans
+  réseau, lancé chaque nuit par le cron d'`ubuntu`
+  (`deploiement/sauvegarde-quotidienne.sh`), seul à lire `sauvegarde.env` ;
+  dépôt dans `~/backups/patrimoine/base/` (le dossier `patrimoine/` contient
+  déjà les sauvegardes du cerveau Graphiti) ; AES-256-GCM plutôt
+  qu'`openssl enc` (authentifié : une sauvegarde altérée est refusée),
+  restauration par le même script.
+- **Restauration réelle** : étape 6 du pas-à-pas (`deploiement/LISEZMOI.md`),
+  en plus du test automatique.
+- **Déploiement** : `git archive` du commit de `main` (jamais l'arbre de
+  travail), refus d'une autre branche ou de modifications non commitées,
+  liste de refus élargie (`*.env`, `*.sqlite`, `*-wal`), bascule seulement
+  d'une extraction complète. Le transfert de la base s'appelle « transfert »
+  (« migration » reste réservé au schéma) et se fait avant le premier
+  déploiement.
+- Conteneur durci : système de fichiers en lecture seule, aucune capacité,
+  `no-new-privileges` ; `.dockerignore` pour une construction locale.
+- Les barres d'allocation sont en SVG (repère de cible conservé), la jauge
+  financier/immobilier en `<progress>`.
+
 ## Seams testés (bloquants, jeux synthétiques)
 
 | Seam | Comportement garanti |
@@ -125,7 +169,7 @@ est sauvegardée chaque nuit, chiffrée ; le Mac peut être éteint.
 
 - Fichiers : `serveur/session.mjs` (empreinte, cookie, essais), route
   `/connexion` + `/deconnexion`, `serveur/config.mjs` (mode public),
-  `scripts/deployer-vps.sh`, `scripts/migrer-base-vps.sh`,
+  `scripts/deployer-vps.sh`, `scripts/transferer-base-vps.sh`,
   `scripts/sauvegarder.mjs` (copie cohérente + chiffrement),
   `deploiement/Dockerfile` + `compose.yml` + `patrimoine.env.exemple`
   (modèle sans valeur), passe CSS, CONTEXT.md, fiche v6.

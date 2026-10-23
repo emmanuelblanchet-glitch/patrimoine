@@ -147,6 +147,11 @@ export function lireFormulaireHypotheses(champs) {
   return { donnees, motifs };
 }
 
+/** La phrase de la page de connexion, telle que tapée (jamais journalisée). */
+export function lireFormulaireConnexion(champs) {
+  return { phrase: typeof champs.phrase === 'string' ? champs.phrase : '' };
+}
+
 /** Annuler un achat erroné : son identifiant seul ; la date est celle du jour. */
 export function lireFormulaireAnnulation(champs) {
   return { donnees: { transactionId: id(champs.achat_id) }, motifs: [] };

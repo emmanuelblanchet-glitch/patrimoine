@@ -87,7 +87,8 @@ export const choix = (nom, libelle, contenu, { aide = '' } = {}) => `<label>${li
 export const case_ = (nom, libelle, valeurs) =>
   `<label class="case"><input type="checkbox" name="${nom}" id="${nom}" value="oui"${valeurs?.[nom] === 'oui' ? ' checked' : ''}> ${libelle}</label>`;
 
-export function pageErreur(titre, message) {
-  return gabarit(titre, '', `<h1>${echapper(titre)}</h1><p>${echapper(message)}</p><p><a href="/">Retour à ma poche</a></p>`);
+/** `nu` : avant la porte, ni navigation ni retour — on ne montre rien de l'outil. */
+export function pageErreur(titre, message, { nu = false } = {}) {
+  return gabarit(titre, '', `<h1>${echapper(titre)}</h1><p>${echapper(message)}</p>${nu ? '' : '<p><a href="/">Retour à ma poche</a></p>'}`, { nu });
 }
 

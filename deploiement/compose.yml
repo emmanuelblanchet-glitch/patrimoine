@@ -1,19 +1,30 @@
-# Conteneur dédié à l'activité (D1). Publié sur 127.0.0.1:8006 de l'hôte,
-# relayé par `tailscale serve --https=8006` : rien n'est exposé sur Internet.
+# Conteneur dédié à l'activité (D1). Réseau de l'hôte : le serveur écoute sur
+# 127.0.0.1 (règle du lot 0, non réglable) — ici celui de l'hôte, que
+# `tailscale serve --https=8006` relaie sur le réseau privé. Un port publié
+# par Docker n'atteindrait pas le 127.0.0.1 du conteneur (revue du lot 3).
 services:
   patrimoine:
     build:
       context: ..
       dockerfile: deploiement/Dockerfile
+    image: patrimoine:local
     container_name: patrimoine
     restart: unless-stopped
+    network_mode: host
     env_file: /home/ubuntu/patrimoine/patrimoine.env
     environment:
+      # Posé ici et non dans le fichier d'environnement : sur le VPS, le mode
+      # public ne peut pas disparaître par l'oubli d'une ligne.
+      PATRIMOINE_MODE: public
       PATRIMOINE_DB: /donnees/patrimoine.db
-      PATRIMOINE_PORT: "8710"
-    ports:
-      - "127.0.0.1:8006:8710"
+      PATRIMOINE_PORT: "8006"
     volumes:
       - /home/ubuntu/patrimoine/donnees:/donnees
-      - /home/ubuntu/backups/patrimoine:/sauvegardes
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 256m

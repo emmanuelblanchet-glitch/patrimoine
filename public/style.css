@@ -77,13 +77,15 @@ small { color: var(--encre-douce); }
 .ligne-alloc .nom { font-weight: 500; }
 .ligne-alloc .nom small { display: block; font-weight: 400; font-size: .86em; }
 .ligne-alloc .valeurs { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; font-size: .95em; }
-/* Les barres sont des <progress> : la CSP refuse les largeurs en attribut style. */
-progress.barre, progress.jauge { grid-column: 1 / -1; width: 100%; height: 6px; appearance: none; -webkit-appearance: none; border: 0; border-radius: 999px; background: var(--filet); overflow: hidden; display: block; }
-progress.jauge { height: 10px; background: var(--filet-fort); }
-progress.barre::-webkit-progress-bar { background: var(--filet); border-radius: 999px; }
+/* La CSP refuse les largeurs en attribut style : barres d'allocation en SVG, jauge en <progress>. */
+svg.barre { grid-column: 1 / -1; width: 100%; height: 14px; display: block; overflow: visible; }
+svg.barre .fond { fill: var(--filet); }
+svg.barre .actuel { fill: var(--accent); }
+svg.barre .cible { fill: var(--encre); }
+progress.jauge { width: 100%; height: 10px; appearance: none; -webkit-appearance: none; border: 0; border-radius: 999px; background: var(--filet-fort); overflow: hidden; display: block; }
 progress.jauge::-webkit-progress-bar { background: var(--filet-fort); border-radius: 999px; }
-progress.barre::-webkit-progress-value, progress.jauge::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
-progress.barre::-moz-progress-bar, progress.jauge::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+progress.jauge::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+progress.jauge::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
 
 .table { overflow-x: auto; background: var(--surface); box-shadow: var(--ombre); border-radius: var(--rayon); padding: 0 var(--esp-2); }
 table { width: 100%; border-collapse: collapse; font-size: .95em; min-width: 520px; }
@@ -134,7 +136,6 @@ ul.faits li { margin: 0 0 var(--esp-2); }
 /* La CSP refuse les styles en attribut : les marges passent par des classes. */
 .espace-dessous { margin-bottom: var(--esp-3); }
 
-/* Lot 3 : marges par classe, bouton de déconnexion, page de connexion, iPhone. */
 .espace-dessus { margin-top: var(--esp-2); }
 .sans-espace-dessus { margin-top: 0; }
 nav .deconnexion { display: inline; margin-left: auto; }
@@ -142,9 +143,8 @@ nav .deconnexion button { padding: 4px 10px; }
 input[type="password"] { font: inherit; padding: 8px 10px; border: 1px solid var(--filet-fort); border-radius: 6px; width: 100%; max-width: 420px; }
 @media (max-width: 480px) {
   html { font-size: 15px; }
-  .saisie, .questions, .synthese, .grille { grid-template-columns: 1fr; }
-  .entete { flex-wrap: wrap; gap: var(--esp-1); }
-  nav { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+  .saisie, .synthese { grid-template-columns: 1fr; }
+  .entete nav { gap: 6px 12px; }
   table { font-size: 0.92em; }
   button { min-height: 44px; }
   .chiffre { font-size: 1.6rem; }

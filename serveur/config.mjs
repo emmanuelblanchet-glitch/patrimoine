@@ -61,18 +61,26 @@ export function cheminBaseAutorise(chemin, racineDepot = RACINE_DEPOT) {
 }
 
 /**
- * Le mode public (lot 3) : derrière le relais Tailscale, l'outil exige une
- * phrase de passe, un secret de session et l'identité de son seul
- * utilisateur. Un seul des quatre réglages présent sans les autres = refus.
+ * Le mode public (lot 3) : déclaré par `PATRIMOINE_MODE=public` (posé par le
+ * fichier compose, pas par le fichier d'environnement), il exige l'hôte
+ * public, l'empreinte de la phrase, le secret de session et le seul
+ * utilisateur. Des réglages publics sans la déclaration, ou la déclaration
+ * sans un réglage : refus de démarrer — jamais une porte à moitié posée, et
+ * jamais un mode local par oubli sur le VPS.
  * @returns {{ ok: true, public: null | { hote, empreinte, secret, utilisateur } } | { ok: false, motif }}
  */
 export function lireModePublic(env) {
+  const mode = env.PATRIMOINE_MODE?.trim();
   const hote = env.PATRIMOINE_HOTE_PUBLIC?.trim();
   const empreinte = env.PATRIMOINE_PHRASE_EMPREINTE?.trim();
   const secret = env.PATRIMOINE_SECRET_SESSION?.trim();
   const utilisateur = env.PATRIMOINE_UTILISATEUR?.trim();
-  if (!hote && !empreinte && !secret && !utilisateur) return { ok: true, public: null };
-  if (!hote || !/^[a-z0-9.-]+(:\d{1,5})?$/i.test(hote)) return { ok: false, motif: 'PATRIMOINE_HOTE_PUBLIC absent ou illisible (ex. vps-memoire.tailde497c.ts.net:8006)' };
+  if (mode !== 'public') {
+    if (mode) return { ok: false, motif: `PATRIMOINE_MODE inconnu : « ${mode} » (public, ou absent pour le mode local)` };
+    if (hote || empreinte || secret || utilisateur) return { ok: false, motif: 'réglages du mode public présents sans PATRIMOINE_MODE=public : refus plutôt qu\'une porte à moitié posée' };
+    return { ok: true, public: null };
+  }
+  if (!hote || !/^[a-z0-9.-]+(:\d{1,5})?$/i.test(hote)) return { ok: false, motif: 'PATRIMOINE_HOTE_PUBLIC absent ou illisible (nom tailnet et port, ex. machine.mon-tailnet.ts.net:8006)' };
   if (!empreinteValide(empreinte)) return { ok: false, motif: 'PATRIMOINE_PHRASE_EMPREINTE absente ou mal formée : node scripts/empreinte-phrase.mjs la fabrique' };
   if (!secret || secret.length < SECRET_MIN) return { ok: false, motif: `PATRIMOINE_SECRET_SESSION absent ou trop court (${SECRET_MIN} caractères au moins)` };
   if (!utilisateur) return { ok: false, motif: 'PATRIMOINE_UTILISATEUR absent : le login Tailscale du seul utilisateur' };

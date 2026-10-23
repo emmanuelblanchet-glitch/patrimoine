@@ -116,12 +116,17 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Source** : l'adresse Tailscale du visiteur, transmise par le relais ;
   c'est par source que se comptent les essais et les recherches.
 - **Sauvegarde chiffrée** : copie cohérente de la base (`VACUUM INTO`),
-  AES-256-GCM, clé dérivée d'une **phrase de sauvegarde** (hors dépôt, et
-  dans le gestionnaire de mots de passe) ; une par nuit, trente jours ;
+  AES-256-GCM, clé dérivée d'une **phrase de sauvegarde** (hors dépôt, dans
+  `sauvegarde.env` lu par la seule tâche de sauvegarde, et dans le
+  gestionnaire de mots de passe) ; une par nuit, trente jours ;
   **restaurer** refuse d'écraser une base.
-- **Déploiement** : copie depuis le Mac des seuls fichiers suivis par git,
-  puis reconstruction du conteneur. **Migration** : la copie unique de la
-  base du Mac vers le VPS, après quoi l'agent du Mac se retire.
+- **Déploiement** : envoi du commit de `main` (fichiers suivis seulement)
+  depuis le Mac, puis reconstruction du conteneur. **Transfert de la base** :
+  la copie unique de la base du Mac vers le VPS, avant le premier
+  déploiement, après quoi l'agent du Mac se retire. (Une **migration** reste
+  un changement de schéma.)
+- **Mode public déclaré** : `PATRIMOINE_MODE=public`, posé par le fichier
+  compose ; sans lui sur le VPS, le serveur refuse de démarrer.
 
 ## Choisir mon ETF (sous-lot 2b)
 

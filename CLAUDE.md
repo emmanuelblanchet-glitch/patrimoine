@@ -84,9 +84,11 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
   (candidats et courtier), chacun avec source officielle et date de relevé ;
   relevés à la main, jamais par un collecteur ; aucune donnée personnelle.
 - `scripts/` — `valider.mjs` validateur d'état ; `sauvegarder.mjs` sauvegarde
-  chiffrée et restauration ; `deployer-vps.sh` (fichiers suivis par git
-  seulement), `migrer-base-vps.sh`, `empreinte-phrase.mjs` ; `deploiement/`
-  Dockerfile, compose, modèle d'environnement sans valeur. `valider.mjs` — `.githooks/pre-commit` = **le**
+  chiffrée et restauration ; `deployer-vps.sh` (commit de main seulement),
+  `transferer-base-vps.sh`, `empreinte-phrase.mjs` ; `deploiement/`
+  Dockerfile, compose (réseau de l'hôte, mode public déclaré), tâche de
+  sauvegarde quotidienne, modèles d'environnement sans valeur, et
+  `LISEZMOI.md`, le pas-à-pas de mise en service. `valider.mjs` — `.githooks/pre-commit` = **le**
   gate bloquant (la protection de branche GitHub n'est pas appliquée sur les
   dépôts privés du plan, constat jarvis 12/08/2026).
 - `tests/` — `node:test`, zéro dépendance ; `tests/aide.mjs` donne une base
@@ -107,12 +109,12 @@ base jetable et un port libre.
 
 ## Lancer l'outil
 
-Sur le VPS (lot 3) : `scripts/deployer-vps.sh` depuis le Mac, environnement
-dans `/home/ubuntu/patrimoine/patrimoine.env` (modèle :
-`deploiement/patrimoine.env.exemple`), base dans
-`/home/ubuntu/patrimoine/donnees/`, relais `tailscale serve --https=8006`.
-Sauvegarde chaque nuit par cron : `docker exec patrimoine node
-scripts/sauvegarder.mjs sauvegarder /donnees/patrimoine.db /sauvegardes`.
+Sur le VPS (lot 3) : voir `deploiement/LISEZMOI.md`. En bref :
+`scripts/deployer-vps.sh` depuis le Mac sur `main`, environnement dans
+`/home/ubuntu/patrimoine/patrimoine.env`, base dans
+`/home/ubuntu/patrimoine/donnees/`, relais `tailscale serve --https=8006`,
+sauvegarde chaque nuit par le cron d'`ubuntu`
+(`deploiement/sauvegarde-quotidienne.sh`, phrase dans `sauvegarde.env`).
 
 En local, sur le Mac :
 

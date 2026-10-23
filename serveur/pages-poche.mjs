@@ -21,6 +21,13 @@ function dateCinqAns(enveloppe) {
 
 const signe = (c) => (c > 0 ? '+' : '');
 
+/**
+ * Barre d'allocation en SVG : la CSP refuse les attributs `style`, mais les
+ * positions d'un SVG sont des attributs de géométrie — le repère de la cible
+ * reste ainsi dessiné à sa place.
+ */
+const barre = (actuelPb, ciblePb) => `<svg class="barre" viewBox="0 0 100 14" preserveAspectRatio="none" role="img" aria-label="${pct(actuelPb)}, cible ${pct(ciblePb)}"><rect class="fond" y="4" width="100" height="6" rx="3"/><rect class="actuel" y="4" width="${Math.min(100, actuelPb / 100)}" height="6" rx="3"/><rect class="cible" x="${Math.min(99.4, ciblePb / 100)}" width="0.6" height="14"/></svg>`;
+
 export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) {
   if (!poche.objectif) {
     return gabarit('Ma poche', '/', `
@@ -56,7 +63,7 @@ export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) 
   const alloc = ecarts.map((e) => `<div class="ligne-alloc">
     <span class="nom">${echapper(LIBELLES_CLASSE[e.classe])}<small>${e.dansLaBande ? 'dans la bande' : e.ecartPb > 0 ? `${pct(e.ecartPb)} sous la cible` : `${pct(-e.ecartPb)} au-dessus de la cible`}</small></span>
     <span class="valeurs">${pct(e.actuelPb)} <small>· cible ${pct(e.ciblePb)}</small></span>
-    <progress class="barre" value="${Math.min(10000, e.actuelPb)}" max="10000" aria-label="${pct(e.actuelPb)}, cible ${pct(e.ciblePb)}"></progress>
+    ${barre(e.actuelPb, e.ciblePb)}
   </div>`).join('');
 
   const etatCote = (l) => {

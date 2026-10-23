@@ -10,7 +10,7 @@
 // chiffré. Rotation : les sauvegardes de plus de 30 jours sont supprimées.
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
@@ -18,7 +18,8 @@ import { DatabaseSync } from 'node:sqlite';
 const EN_TETE = Buffer.from('PATRIMOINE1');
 // N = 2^15 demande 32 Mo de mémoire : au-dessus de la limite par défaut de Node, d'où maxmem.
 const SCRYPT = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
-export const RETENTION_JOURS = 30;
+const RETENTION_JOURS = 30;
+const ENTETE_LONGUEUR = 11 + 16 + 12 + 16; // en-tête, sel, nonce, étiquette
 const PREFIXE = 'patrimoine-';
 const SUFFIXE = '.sqlite.chiffre';
 
@@ -35,12 +36,12 @@ export function chiffrer(clair, phrase) {
 
 /** Lève si la phrase est mauvaise ou le fichier altéré (étiquette GCM). */
 export function dechiffrer(fichier, phrase) {
-  if (!fichier.subarray(0, EN_TETE.length).equals(EN_TETE)) throw new Error('ce fichier n\'est pas une sauvegarde Patrimoine');
+  if (fichier.length < ENTETE_LONGUEUR || !fichier.subarray(0, EN_TETE.length).equals(EN_TETE)) throw new Error('ce fichier n\'est pas une sauvegarde Patrimoine');
   let i = EN_TETE.length;
   const sel = fichier.subarray(i, i += 16);
   const nonce = fichier.subarray(i, i += 12);
   const etiquette = fichier.subarray(i, i += 16);
-  const dechiffreur = createDecipheriv('aes-256-gcm', cle(phrase, sel), nonce);
+  const dechiffreur = createDecipheriv('aes-256-gcm', cle(phrase, sel), nonce, { authTagLength: 16 });
   dechiffreur.setAuthTag(etiquette);
   try {
     return Buffer.concat([dechiffreur.update(fichier.subarray(i)), dechiffreur.final()]);
@@ -51,8 +52,7 @@ export function dechiffrer(fichier, phrase) {
 
 /** Copie cohérente de la base ouverte, dans un fichier temporaire, rendue en mémoire. */
 function copieCoherente(cheminBase) {
-  const dossier = join(tmpdir(), `patrimoine-sauvegarde-${process.pid}-${Date.now()}`);
-  mkdirSync(dossier, { mode: 0o700 });
+  const dossier = mkdtempSync(join(tmpdir(), 'patrimoine-sauvegarde-'));
   const copie = join(dossier, 'copie.db');
   const base = new DatabaseSync(cheminBase, { readOnly: true });
   try {
@@ -67,16 +67,17 @@ function copieCoherente(cheminBase) {
   }
 }
 
-/** Écrit `<dossier>/patrimoine-<horodatage>.sqlite.chiffre`, supprime les sauvegardes trop vieilles ; rend le chemin écrit. */
-export function sauvegarder(cheminBase, dossier, phrase, { maintenant = () => new Date() } = {}) {
+/** Les sauvegardes de plus de RETENTION_JOURS sont supprimées ; les autres fichiers du dossier ne sont pas touchés. */
+export function sauvegarder(cheminBase, dossier, phrase) {
   const clair = copieCoherente(cheminBase);
-  const horodatage = maintenant().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const maintenant = new Date();
+  const horodatage = maintenant.toISOString().replace(/[:.]/g, '-').slice(0, 19);
   mkdirSync(dossier, { recursive: true });
   const sortie = join(dossier, `${PREFIXE}${horodatage}${SUFFIXE}`);
   writeFileSync(sortie, chiffrer(clair, phrase), { mode: 0o600 });
-  const limite = maintenant().getTime() - RETENTION_JOURS * 24 * 60 * 60 * 1000;
+  const limite = maintenant.getTime() - RETENTION_JOURS * 24 * 60 * 60 * 1000;
   for (const nom of readdirSync(dossier)) {
-    if (!nom.startsWith(PREFIXE) || !nom.endsWith(SUFFIXE) || nom === `${PREFIXE}${horodatage}${SUFFIXE}`) continue;
+    if (!nom.startsWith(PREFIXE) || !nom.endsWith(SUFFIXE)) continue;
     if (statSync(join(dossier, nom)).mtimeMs < limite) unlinkSync(join(dossier, nom));
   }
   return sortie;
