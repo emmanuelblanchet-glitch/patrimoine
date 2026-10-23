@@ -1,0 +1,100 @@
+{
+  "titre": "ETF MSCI World éligibles au PEA, et le courtier retenu : faits relevés sur les pages officielles",
+  "regle": "Chaque fait porte sa valeur, sa source (page officielle de l'émetteur, d'Euronext, de Yahoo Finance pour un cours, ou la brochure tarifaire du courtier) et la date du relevé. Aucune donnée personnelle ici : les hypothèses (versement, horizon) viennent de la base, jamais de ce fichier.",
+  "courtier": {
+    "nom": "BoursoBank",
+    "formule": "Découverte",
+    "faits": {
+      "fraisOrdre": {
+        "valeur": { "forfaitCentimes": 199, "jusquaCentimes": 50000, "tauxAuDelaPb": 60, "plafondPeaPb": 50 },
+        "source": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+        "releve_le": "2026-10-23",
+        "note": "Brochure tarifaire, tarifs applicables au 5 octobre 2026, p. 20 : formule Découverte, 1,99 € par ordre jusqu'à 500 € puis 0,60 % au-delà ; sur PEA, courtage plafonné à 0,5 % du montant de l'ordre. Un ETF hors Boursomarkets suit ce tarif à l'achat comme à la vente."
+      },
+      "minimumOrdreCentimes": {
+        "valeur": 10000,
+        "source": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+        "releve_le": "2026-10-23",
+        "note": "Brochure tarifaire p. 23 : montant d'ordre minimum à l'achat, ETF sur PEA, 100 €."
+      },
+      "droitsDeGardeCentimes": {
+        "valeur": 0,
+        "source": "https://www.boursorama.com/content/brochure_tarifaire/boursorama_bt.pdf",
+        "releve_le": "2026-10-23",
+        "note": "Brochure tarifaire p. 23 : droits de garde gratuits, toutes formules."
+      },
+      "emetteursSansCourtageAchat": {
+        "valeur": ["Amundi"],
+        "source": "https://www.boursobank.com/bourse/boursomarkets-courtage-bourse-gratuit",
+        "releve_le": "2026-10-23",
+        "note": "Boursomarkets : seul Amundi Investment Solutions est partenaire ETF ; 0 € de courtage à l'achat (brochure p. 20), la vente suit le tarif actions. iShares n'y figure pas."
+      }
+    }
+  },
+  "candidats": [
+    {
+      "symbole": "WPEA.PA",
+      "isin": "IE0002XZSHO1",
+      "nom": "iShares MSCI World Swap PEA UCITS ETF",
+      "emetteur": "iShares",
+      "faits": {
+        "fraisCourantsPb": { "valeur": 20, "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Ratio des frais totaux 0,20 %" },
+        "prixPartCentimes": { "valeur": 716, "source": "https://finance.yahoo.com/quote/WPEA.PA", "releve_le": "2026-10-23", "note": "Clôture Euronext Paris du 22/10/2026 : 7,161 €" },
+        "encoursMillionsEuros": { "valeur": 2337, "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Actif net 2 337 219 896 € au 22/10/2026" },
+        "replication": { "valeur": "synthétique", "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Structure synthétique, méthodologie swap" },
+        "capitalisant": { "valeur": true, "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Capitalisation" },
+        "eligiblePea": { "valeur": true, "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Éligibilité au PEA : oui ; le fonds a l'intention de conserver ce statut" },
+        "indice": { "valeur": "MSCI World", "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23" },
+        "premiereVl": { "valeur": "2024-03-26", "source": "https://www.blackrock.com/fr/intermediaries/products/335178/ishares-msci-world-swap-pea-ucits-etf", "releve_le": "2026-10-23", "note": "Date de lancement" }
+      }
+    },
+    {
+      "symbole": "DCAM.PA",
+      "isin": "FR001400U5Q4",
+      "nom": "Amundi PEA Monde (MSCI World) UCITS ETF Acc",
+      "emetteur": "Amundi",
+      "faits": {
+        "fraisCourantsPb": { "valeur": 20, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "Frais de gestion et autres coûts administratifs ou d'exploitation 0,20 % (reporting au 31/08/2026)" },
+        "prixPartCentimes": { "valeur": 634, "source": "https://finance.yahoo.com/quote/DCAM.PA", "releve_le": "2026-10-23", "note": "Clôture Euronext Paris du 22/10/2026 : 6,34 €" },
+        "encoursMillionsEuros": { "valeur": 1407, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "Actif géré 1 407,36 millions d'euros au 31/08/2026" },
+        "replication": { "valeur": "synthétique", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "Type de réplication : synthétique" },
+        "capitalisant": { "valeur": true, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "Affectation des sommes distribuables : capitalisation" },
+        "eligiblePea": { "valeur": true, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "« Le Fonds est éligible au Plan d'Épargne en Actions français (PEA) »" },
+        "indice": { "valeur": "MSCI World", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23" },
+        "premiereVl": { "valeur": "2025-03-04", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/FR001400U5Q4/FRA/FRA/RETAIL/ETF/20260831", "releve_le": "2026-10-23", "note": "Date de la première VL" }
+      }
+    },
+    {
+      "symbole": "CW8.PA",
+      "isin": "LU1681043599",
+      "nom": "Amundi MSCI World Swap UCITS ETF EUR Acc",
+      "emetteur": "Amundi",
+      "faits": {
+        "fraisCourantsPb": { "valeur": 38, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Frais de gestion et autres coûts administratifs ou d'exploitation 0,38 % (reporting au 30/09/2026) ; la fiche Boursorama affiche 0,28 % « maximum », l'émetteur fait foi" },
+        "prixPartCentimes": { "valeur": 71035, "source": "https://finance.yahoo.com/quote/CW8.PA", "releve_le": "2026-10-23", "note": "Clôture Euronext Paris du 22/10/2026 : 710,35 €" },
+        "encoursMillionsEuros": { "valeur": 7200, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Actif géré 7 199,85 millions d'euros au 30/09/2026 (compartiment, classes Acc et Dist confondues)" },
+        "replication": { "valeur": "synthétique", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23" },
+        "capitalisant": { "valeur": true, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Affectation des sommes distribuables : capitalisation" },
+        "eligiblePea": { "valeur": true, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Enveloppe fiscale : éligible au PEA" },
+        "indice": { "valeur": "MSCI World", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23" },
+        "premiereVl": { "valeur": "2009-06-16", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681043599/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Date de la première VL du compartiment" }
+      }
+    },
+    {
+      "symbole": "EWLD.PA",
+      "isin": "LU2655993207",
+      "nom": "Amundi MSCI World Swap UCITS ETF EUR Dist",
+      "emetteur": "Amundi",
+      "faits": {
+        "fraisCourantsPb": { "valeur": 38, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Frais de gestion et autres coûts administratifs ou d'exploitation 0,38 % (reporting au 30/09/2026)" },
+        "prixPartCentimes": { "valeur": 4208, "source": "https://finance.yahoo.com/quote/EWLD.PA", "releve_le": "2026-10-23", "note": "Clôture Euronext Paris du 22/10/2026 : 42,08 €" },
+        "encoursMillionsEuros": { "valeur": 7200, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Actif géré 7 199,85 millions d'euros au 30/09/2026 (compartiment, classes Acc et Dist confondues)" },
+        "replication": { "valeur": "synthétique", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23" },
+        "capitalisant": { "valeur": false, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Affectation des sommes distribuables : distribution (dividendes versés, à replacer soi-même)" },
+        "eligiblePea": { "valeur": true, "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Enveloppe fiscale : éligible au PEA" },
+        "indice": { "valeur": "MSCI World", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23" },
+        "premiereVl": { "valeur": "2024-03-15", "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2655993207/FRA/FRA/INSTITUTIONNEL/ETF", "releve_le": "2026-10-23", "note": "Date de la première VL de la classe Dist (ex-Lyxor PEA Monde, FR0011869353, migré)" }
+      }
+    }
+  ]
+}

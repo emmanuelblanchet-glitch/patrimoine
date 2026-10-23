@@ -121,6 +121,27 @@ Cadré le 23/10/2026 (décisions L2b-1 à L2b-3, Emmanuel).
 - Règles portées : un seul ETF monde suffit ; la recommandation ne vend
   jamais une ligne existante, elle dit où va le prochain versement.
 
+### Précisé au développement (2b)
+
+- Faits relevés le 23/10/2026 sur les pages officielles : iShares (page
+  produit, actif net au 22/10), Amundi (reportings mensuels au 31/08 et au
+  30/09, extraits du PDF), brochure tarifaire BoursoBank du 05/10/2026
+  (p. 20 et 23), page Boursomarkets ; prix de part = clôture Euronext du
+  22/10 relevée sur Yahoo Finance. ⚠️ La fiche Boursorama affiche 0,28 %
+  « maximum » pour CW8 et EWLD ; le reporting Amundi dit 0,38 % — l'émetteur
+  fait foi. ⚠️ Chez BoursoBank, seul **Amundi** est partenaire Boursomarkets
+  (0 € à l'achat) ; WPEA (iShares) paie le courtage Découverte, plafonné à
+  0,5 % sur PEA.
+- Coût simulé mois par mois en centimes : l'argent attend tant qu'une part
+  n'est pas achetable (ou sous le minimum d'ordre), le courtage est retenu
+  sur l'ordre, le capital croît au rendement mensuel puis paie un douzième
+  des frais courants. Même convention de rendement que la trajectoire.
+- Le cache des explications porte un **sujet** (migration 4) : la poche et
+  l'ETF n'épurent que le leur — sinon chaque page aurait effacé le texte de
+  l'autre et relancé un appel.
+- Les hypothèses hors bornes ou illisibles répondent 400 avec le motif, la
+  page reste affichée avec les valeurs tapées.
+
 ### Seams du 2b
 
 | Seam | Comportement garanti |

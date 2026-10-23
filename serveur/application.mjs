@@ -20,7 +20,6 @@ import {
   validerAchat, enregistrerAchat, annulerAchat, lireAchats, validerLigneCotee, creerLigneCotee,
 } from '../lib/referentiel.mjs';
 import { calculerBilan } from '../lib/bilan.mjs';
-import { lireDate } from '../lib/saisie.mjs';
 import { validerObjectif, enregistrerObjectif, amorcerLignes, lireObjectif, lireCible, classerLigne, validerClasse } from '../lib/objectif.mjs';
 import { etatDeLaPoche } from '../lib/poche.mjs';
 import { aujourdhuiLocal } from '../lib/format.mjs';
@@ -32,7 +31,11 @@ import {
 import { pageErreur } from './gabarit.mjs';
 import { pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages } from './pages-poche.mjs';
 import { pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations } from './pages-details.mjs';
+import { pageChoisirEtf } from './pages-choix.mjs';
 import { creerFournisseur } from './explications.mjs';
+import { chargerReferences, faitsPerimes } from '../lib/references.mjs';
+import { classer, chargeUtileEtf, empreinteEtf, texteDeRepliEtf, messagesPourClaudeEtf } from '../lib/choix-etf.mjs';
+import { lireDate, lireMontantFacultatif, lireEntier, lireTauxPb } from '../lib/saisie.mjs';
 
 const DOSSIER_PUBLIC = join(RACINE_DEPOT, 'public');
 const TYPES_STATIQUES = {
@@ -124,6 +127,39 @@ const ECRANS = {
 
 const pageMouvement = (ctx, options) => pageVersement({ poche: ctx.poche, aujourdhui: ctx.aujourdhui, achats: lireAchats(ctx.base) }, options);
 
+/**
+ * Les hypothèses de « Choisir mon ETF » : la requête si elle en porte,
+ * sinon le point de départ, sinon des valeurs neutres. Rien n'est écrit.
+ */
+const HYPOTHESES_NEUTRES = { versementCentimes: 500_00, horizonAnnees: 10, rendementPb: 500 };
+function lireHypotheses(params, objectif) {
+  const base = objectif
+    ? { versementCentimes: objectif.epargneMensuelleCentimes, horizonAnnees: objectif.horizonAnnees, rendementPb: objectif.rendementEstimePb }
+    : HYPOTHESES_NEUTRES;
+  const motifs = [];
+  const valeurs = {};
+  const lire = (nom, fn, libelle, bornes) => {
+    if (!params.has(nom)) return null;
+    valeurs[nom] = params.get(nom);
+    const r = fn(params.get(nom));
+    if (!r.ok || r.valeur == null) { motifs.push(`${libelle} : ${r.motif ?? 'obligatoire'}`); return null; }
+    if (r.valeur < bornes[0] || r.valeur > bornes[1]) { motifs.push(`${libelle} : entre ${bornes[2]}`); return null; }
+    return r.valeur;
+  };
+  const versementCentimes = lire('versement', lireMontantFacultatif, 'Versement mensuel', [1, 100_000_00, '0,01 € et 100 000 €']);
+  const horizonAnnees = lire('horizon', lireEntier, 'Horizon', [1, 60, '1 et 60 ans']);
+  const rendementPb = lire('rendement', lireTauxPb, 'Rendement estimé', [-2000, 2000, '−20 % et 20 %']);
+  return {
+    motifs,
+    valeurs,
+    hypotheses: {
+      versementCentimes: versementCentimes ?? base.versementCentimes,
+      horizonAnnees: horizonAnnees ?? base.horizonAnnees,
+      rendementPb: rendementPb ?? base.rendementPb,
+    },
+  };
+}
+
 /** Tout ce qu'une page peut avoir besoin de lire, calculé une fois par requête. */
 function contexte(base, aujourdhui, cleClaude, rafraichisseur) {
   const etat = lireEtat(base);
@@ -178,7 +214,7 @@ async function servirStatique(res, nom) {
 /**
  * @param {{ base, hotesAutorises: () => string[], aujourdhui?: () => string }} options
  */
-function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
+function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
   const ctxDe = () => contexte(base, aujourdhui(), cleClaude, rafraichisseur);
   return async (req, res) => {
     try {
@@ -213,6 +249,15 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
         if (chemin === '/allocation') {
           const ctx = ctxDe();
           return envoyer(res, 200, pageAllocation({ poche: ctx.poche, cible: ctx.cible, enveloppes: ctx.etat.enveloppes }));
+        }
+        if (chemin === '/choisir/etf') {
+          const objectif = lireObjectif(base);
+          const { motifs, valeurs, hypotheses } = lireHypotheses(url.searchParams, objectif);
+          const classement = classer(references, hypotheses);
+          const charge = chargeUtileEtf(classement, hypotheses);
+          const explication = fournisseurEtf.obtenir(charge, empreinteEtf(charge));
+          const jour = aujourdhui();
+          return envoyer(res, motifs.length ? 400 : 200, pageChoisirEtf({ references, classement, charge, explication, hypotheses, perimes: faitsPerimes(references, jour), aujourdhui: jour }, { valeurs, motifs }));
         }
         if (chemin === '/reglages') {
           const ctx = ctxDe();
@@ -265,7 +310,7 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
 }
 
 /** Démarre le serveur, uniquement sur 127.0.0.1. `port: 0` choisit un port libre (tests). */
-export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours }) {
+export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours, references = chargerReferences() }) {
   return new Promise((resoudre, rejeter) => {
     const serveur = createServer();
     const hotesAutorises = () => {
@@ -273,8 +318,9 @@ export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => proc
       return [`${HOTE}:${p}`, `localhost:${p}`];
     };
     const fournisseur = creerFournisseur({ base, cle: cleClaude, rediger });
+    const fournisseurEtf = creerFournisseur({ base, cle: cleClaude, rediger, sujet: 'etf', repli: texteDeRepliEtf, messages: messagesPourClaudeEtf });
     const rafraichisseur = creerRafraichisseur({ base, ...(fetchCours ? { fetchImpl: fetchCours } : {}) });
-    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, rafraichisseur, cleClaude }));
+    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude }));
     serveur.once('error', rejeter);
     serveur.listen(port, HOTE, () => resoudre(serveur));
   });

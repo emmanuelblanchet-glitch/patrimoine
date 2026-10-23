@@ -38,7 +38,7 @@ export function options(valeurs, libelles, choisie) {
     .join('');
 }
 
-const NAV = [['/', 'Ma poche'], ['/allocation', 'Allocation'], ['/lignes', 'Lignes'], ['/versement', 'Mouvement'], ['/reglages', 'Réglages']];
+const NAV = [['/', 'Ma poche'], ['/allocation', 'Allocation'], ['/lignes', 'Lignes'], ['/versement', 'Mouvement'], ['/choisir/etf', 'Choisir mon ETF'], ['/reglages', 'Réglages']];
 const NAV_DETAILS = [['/bilan', 'Bilan complet'], ['/enveloppes', 'Enveloppes'], ['/actifs', 'Actifs'], ['/passifs', 'Crédits'], ['/valorisations', 'Valorisations']];
 
 export function gabarit(titre, actif, contenu, { details = false } = {}) {
