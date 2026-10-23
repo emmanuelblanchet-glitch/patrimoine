@@ -110,7 +110,8 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Courtier retenu** : BoursoBank, formule Découverte ; ses frais sont des
   faits du même fichier. Le PEA est choisi, il n'y a pas de page PEA.
 - **Hypothèses** : versement mensuel, horizon, rendement estimé — pré-remplies
-  depuis le point de départ, modifiables dans la page, jamais écrites.
+  depuis le point de départ, modifiables dans la page, jamais écrites. Claude
+  ne rédige que pour celles du point de départ ; modifiées, le texte codé suffit.
 - **Coût de première année** / **coût sur l'horizon** : courtage de chaque
   ordre + frais courants prélevés sur l'encours, simulés mois par mois ;
   une estimation.

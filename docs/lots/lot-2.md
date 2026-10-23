@@ -142,6 +142,31 @@ Cadré le 23/10/2026 (décisions L2b-1 à L2b-3, Emmanuel).
 - Les hypothèses hors bornes ou illisibles répondent 400 avec le motif, la
   page reste affichée avec les valeurs tapées.
 
+### Précisé après la revue (2b)
+
+- **Claude ne rédige que pour les hypothèses du point de départ** : des
+  hypothèses tapées dans l'adresse recalculent la page avec le texte codé,
+  sans appel — sinon chaque valeur distincte aurait coûté un appel, depuis
+  n'importe quelle page ouverte dans le navigateur (revue sécurité).
+- **Fractions exactes** dans la simulation : un douzième du rendement et des
+  frais courants par mois, un seul arrondi au centime par opération ; la
+  trajectoire du lot 1 reste en flottant, elle ne compte pas d'argent.
+- Un candidat non achetable chaque mois dit **la vraie raison** : part plus
+  chère que le versement, ou versement sous le minimum d'ordre du courtier
+  (le minimum entre dans la charge utile).
+- **Catalogue de faits strict** : un fait hors liste fait échouer le
+  chargement — sinon il serait affiché sans avoir été vérifié.
+- La consigne à Claude porte « on ne vend jamais une ligne existante ».
+- **Classement** (né au développement, à la place d'une règle que le cadrage
+  ne fixait pas) : achetables chaque mois d'abord, par coût cumulé croissant,
+  à égalité le plus gros encours ; le premier est recommandé. Sans point de
+  départ, hypothèses neutres (500 €, 10 ans, 5 %) pour que la page vive.
+- ⚠️ Le validateur du dépôt est un fichier verrouillé (non modifiable en
+  session) : il n'a pas été étendu au fichier de références ; les seams
+  S-L2-6 et S-L2-8 tiennent par les tests, joués au pre-commit et en CI.
+- ⚠️ Parqué : les attributs `style=""` de pages-poche (barres d'allocation,
+  marges) sont refusés par la CSP `style-src 'self'` — à passer en classes.
+
 ### Seams du 2b
 
 | Seam | Comportement garanti |

@@ -195,7 +195,7 @@ export function pageAllocation({ poche, cible, enveloppes = [] }) {
   }).join('');
   return gabarit('Allocation', '/allocation', `
 <h1>Mon allocation</h1>
-<p class="sous-titre">La cible de la poche, et l'enveloppe qui accueille chaque part. ${tag('opinion', 'aide à la décision')}</p>
+<p class="sous-titre">La cible de la poche, et l'enveloppe qui accueille chaque part. Pour la part actions, <a href="/choisir/etf">Choisir mon ETF</a> compare les ETF monde éligibles au PEA. ${tag('opinion', 'aide à la décision')}</p>
 <div class="synthese">${blocs}</div>
 <section class="section">
   <h2>La règle, en clair</h2>

@@ -130,3 +130,5 @@ button.discret:hover { color: var(--encre); border-color: var(--encre-2); }
 tr.reco td { background: var(--accent-fond); }
 ul.faits { padding-left: 18px; font-size: 0.92em; }
 ul.faits li { margin: 0 0 var(--esp-2); }
+/* La CSP refuse les styles en attribut : les marges passent par des classes. */
+.espace-dessous { margin-bottom: var(--esp-3); }

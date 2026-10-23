@@ -3,8 +3,8 @@
 
 import { echapper, gabarit, blocErreurs, blocAvertissements, champ, tag, dateFr } from './gabarit.mjs';
 import { euros, eurosRonds, pct } from '../lib/format.mjs';
-import { MENTION } from '../lib/choix-etf.mjs';
-import { FRAICHEUR_MAX_JOURS, ageJours } from '../lib/references.mjs';
+import { MENTION } from '../lib/explication.mjs';
+import { FRAICHEUR_MAX_JOURS } from '../lib/references.mjs';
 
 const LIBELLES_FAIT = {
   fraisCourantsPb: 'frais courants', prixPartCentimes: 'prix de part', encoursMillionsEuros: 'encours', replication: 'réplication',
@@ -26,9 +26,9 @@ function valeurFait(nom, fait) {
   }
 }
 
-const faitHtml = ([nom, f]) => `${LIBELLES_FAIT[nom] ?? nom} ${echapper(valeurFait(nom, f))} <small>(<a href="${echapper(f.source)}" rel="noreferrer">source</a>, ${dateFr(f.releve_le)})</small>`;
+const faitHtml = ([nom, f]) => `${echapper(LIBELLES_FAIT[nom])} ${echapper(valeurFait(nom, f))} <small>(<a href="${echapper(f.source)}" rel="noreferrer">source</a>, ${dateFr(f.releve_le)})</small>`;
 
-export function pageChoisirEtf({ references, classement, explication, hypotheses, perimes, aujourdhui }, { valeurs = {}, motifs = [] } = {}) {
+export function pageChoisirEtf({ references, classement, explication, hypotheses, perimes }, { valeurs = {}, motifs = [] } = {}) {
   const v = {
     versement: valeurs.versement ?? (hypotheses.versementCentimes / 100).toString(),
     horizon: valeurs.horizon ?? String(hypotheses.horizonAnnees),
@@ -49,17 +49,15 @@ export function pageChoisirEtf({ references, classement, explication, hypotheses
     `<li><strong>${echapper(courtier.nom)}</strong> (${echapper(courtier.formule)}) : ${Object.entries(courtier.faits).map(faitHtml).join(' · ')}</li>`,
     ...references.candidats.map((c) => `<li><strong>${echapper(c.symbole)}</strong> ${echapper(c.nom)}, ISIN ${echapper(c.isin)} : ${Object.entries(c.faits).map(faitHtml).join(' · ')}</li>`),
   ].join('');
-  const tousLesFaits = [...Object.values(courtier.faits), ...references.candidats.flatMap((c) => Object.values(c.faits))];
-  const plusAncien = Math.max(...tousLesFaits.map((f) => ageJours(f, aujourdhui)));
   const origine = explication.origine === 'claude'
-    ? `rédigé par Claude (${echapper(explication.modele ?? '')}) le ${echapper(explication.date?.slice(0, 10) ?? '')}`
-    : `texte de repli écrit depuis les chiffres ; ${explication.raison === 'sans_cle' ? 'aucune clé Claude dans l\'environnement' : explication.raison ? `dernier appel : ${echapper(explication.raison)}${explication.enCours ? ' ; nouvel essai en cours' : explication.enRecul ? ' ; nouvel essai dans dix minutes' : ''}` : 'Claude rédige en arrière-plan, recharge la page dans un instant'}`;
+    ? `rédigé par Claude (${echapper(explication.modele)}) le ${echapper(explication.date.slice(0, 10))}`
+    : `texte écrit depuis les chiffres ; ${explication.raison === 'hypotheses_modifiees' ? 'Claude ne rédige que pour les hypothèses de ton point de départ' : explication.raison === 'sans_cle' ? 'aucune clé Claude dans l\'environnement' : explication.raison ? `dernier appel : ${echapper(explication.raison)}${explication.enCours ? ' ; nouvel essai en cours' : explication.enRecul ? ' ; nouvel essai dans dix minutes' : ''}` : 'Claude rédige en arrière-plan, recharge la page dans un instant'}`;
   return gabarit('Choisir mon ETF', '/choisir/etf', `
 <h1>Choisir mon ETF monde</h1>
 <p class="sous-titre">Les ETF MSCI World éligibles au PEA, et ce que chacun te coûterait chez ${echapper(courtier.nom)} pour ton rythme. Un seul suffit. Les faits viennent des pages officielles, chacun avec sa date.</p>
 ${blocErreurs(motifs)}
 ${perimes.length ? blocAvertissements('Faits à rafraîchir', [`${perimes.length} fait${perimes.length > 1 ? 's ont' : ' a'} plus de ${FRAICHEUR_MAX_JOURS} jours (${[...new Set(perimes.map((p) => p.ou))].join(', ')}) : les coûts ci-dessous peuvent avoir changé.`]) : ''}
-<form method="get" action="/choisir/etf" class="saisie" style="margin-bottom:var(--esp-3)">
+<form method="get" action="/choisir/etf" class="saisie espace-dessous">
   ${champ('versement', 'Versement mensuel (€)', v, { requis: true, aide: 'pré-rempli depuis ton point de départ' })}
   ${champ('horizon', 'Horizon (années)', v, { requis: true })}
   ${champ('rendement', 'Rendement annuel estimé (%)', v, { aide: 'sert au coût cumulé seulement' })}
@@ -69,7 +67,7 @@ ${perimes.length ? blocAvertissements('Faits à rafraîchir', [`${perimes.length
   <thead><tr><th>ETF</th><th class="num">Frais courants</th><th class="num">Part</th><th class="num">Encours</th><th class="num">Courtage / ordre</th><th class="num">Coût 1<sup>re</sup> année</th><th class="num">Coût sur ${hypotheses.horizonAnnees} ans</th><th>Achetable chaque mois</th></tr></thead>
   <tbody>${lignes}</tbody>
 </table></div>
-<p class="source">Coût = courtage de chaque ordre + frais courants prélevés sur l'encours, mois par mois, à ${pct(hypotheses.rendementPb)} par an d'hypothèse ${tag('estim', 'estimation')}. Le courtage suit la grille ${echapper(courtier.formule)} de ${echapper(courtier.nom)} ; les ETF ${echapper(courtier.faits.emetteursSansCourtageAchat.valeur.join(', '))} sont sans courtage à l'achat. Un ETF dont la part vaut plus que le versement n'est pas achetable chaque mois : l'argent attend.</p>
+<p class="source">Coût = courtage de chaque ordre + frais courants prélevés sur l'encours, mois par mois, à ${pct(hypotheses.rendementPb)} par an d'hypothèse ${tag('estim', 'estimation')}. Le courtage suit la grille ${echapper(courtier.formule)} de ${echapper(courtier.nom)} ; les ETF ${echapper(courtier.faits.emetteursSansCourtageAchat.valeur.join(', '))} sont sans courtage à l'achat. Un ETF n'est pas achetable chaque mois si sa part vaut plus que le versement, ou si le versement est sous le minimum d'ordre (${euros(courtier.faits.minimumOrdreCentimes.valeur)}) : l'argent attend.</p>
 <section class="section">
 <h2>Ce que ça veut dire</h2>
 <div class="carte"><p>${echapper(explication.texte)}</p><p class="source">${origine}</p></div>
@@ -77,6 +75,6 @@ ${perimes.length ? blocAvertissements('Faits à rafraîchir', [`${perimes.length
 <section class="section">
 <h2>Les faits et leurs dates</h2>
 <ul class="faits">${faits}</ul>
-<p class="aide">Rien ne met ces faits à jour tout seul : ils sont relevés à la main sur les pages officielles, puis relus. Au ${dateFr(aujourdhui)}, le plus ancien a ${plusAncien} jour${plusAncien > 1 ? 's' : ''}. ${MENTION}</p>
+<p class="aide">Rien ne met ces faits à jour tout seul : ils sont relevés à la main sur les pages officielles, puis relus ; au-delà de ${FRAICHEUR_MAX_JOURS} jours, la page le signale. ${MENTION}</p>
 </section>`);
 }

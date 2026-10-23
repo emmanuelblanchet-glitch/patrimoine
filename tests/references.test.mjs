@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chargerReferences, verifierReferences, faitsPerimes, ageJours, FRAICHEUR_MAX_JOURS, ErreurReference } from '../lib/references.mjs';
+import { chargerReferences, verifierReferences, faitsPerimes, ageJours, FRAICHEUR_MAX_JOURS } from '../lib/references.mjs';
 
 const CLES_CANDIDAT = ['symbole', 'isin', 'nom', 'emetteur', 'faits'];
 const CLES_FAIT = ['valeur', 'source', 'releve_le', 'note'];
@@ -37,7 +37,9 @@ test('S-L2-6 — un fait sans source, sans date, ou un candidat hors périmètre
   const horsMonde = structuredClone(bon);
   horsMonde.candidats[2].faits.indice.valeur = 'S&P 500';
   assert.match(verifierReferences(horsMonde).join(' '), /CW8\.PA : seul un ETF MSCI World/);
-  assert.throws(() => chargerReferences('/nulle/part.json'), ErreurReference);
+  const inconnu = structuredClone(bon);
+  inconnu.candidats[0].faits.couleur = { valeur: 'bleu', source: 'https://x.test/', releve_le: '2026-10-23' };
+  assert.match(verifierReferences(inconnu).join(' '), /WPEA\.PA couleur : fait inconnu/, 'catalogue strict : un fait hors liste n\'est pas affiché sans avoir été vérifié');
 });
 
 test('S-L2-6 — un fait de plus de six mois est périmé ; à la limite, non', () => {

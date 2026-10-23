@@ -2,7 +2,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fraisOrdre, achetableChaqueMois, simuler, classer, chargeUtileEtf, empreinteEtf, texteDeRepliEtf, messagesPourClaudeEtf, CLES_CHARGE_UTILE_ETF, MENTION } from '../lib/choix-etf.mjs';
+import { fraisOrdre, achetableChaqueMois, simuler, classer, chargeUtileEtf, texteDeRepliEtf, messagesPourClaudeEtf, CLES_CHARGE_UTILE_ETF } from '../lib/choix-etf.mjs';
+import { MENTION } from '../lib/explication.mjs';
+import { normaliser } from './aide.mjs';
 
 const fait = (valeur) => ({ valeur, source: 'https://exemple.test/', releve_le: '2026-10-23' });
 const COURTIER = {
@@ -50,6 +52,9 @@ test('S-L2-5 — coût calculé à la main : 500 € par mois, 0 % de frais cour
   const [cher] = simuler({ courtier: COURTIER, candidat: candidat('C', 'Payant', { frais: 0, prix: 70000 }), versementCentimes: 50000, horizonAnnees: 1, rendementPb: 0 });
   assert.equal(cher.nombreOrdres, 6);
   assert.equal(cher.ordresCentimes, 6 * 500);
+  // 12 % par an : +1 % par mois, exact. 500 € → 505 € → frais 0,20 %/12 = 8 ct.
+  const [unMois] = simuler({ courtier: COURTIER, candidat: candidat('G', 'Gratuit', { frais: 20 }), versementCentimes: 50000, horizonAnnees: 1, rendementPb: 1200 });
+  assert.ok(unMois.capitalCentimes > 12 * 50000, 'le rendement s\'applique');
   // Le rendement joue sur le coût de gestion, pas sur le courtage.
   const [avecRendement] = simuler({ courtier: COURTIER, candidat: candidat('G', 'Gratuit', { frais: 20 }), versementCentimes: 50000, horizonAnnees: 1, rendementPb: 1200 });
   const [sansRendement] = simuler({ courtier: COURTIER, candidat: candidat('G', 'Gratuit', { frais: 20 }), versementCentimes: 50000, horizonAnnees: 1, rendementPb: 0 });
@@ -77,23 +82,21 @@ test('classement : achetables d\'abord par coût cumulé, puis encours ; le prem
 test('S-L2-7 — la charge utile ne contient que les clés prévues ; par candidat, des faits chiffrés et rien d\'autre', () => {
   const references = { courtier: COURTIER, candidats: [candidat('A', 'Gratuit'), candidat('B', 'Payant', { capitalisant: false })] };
   const hypotheses = { versementCentimes: 50000, horizonAnnees: 10, rendementPb: 500 };
-  const charge = chargeUtileEtf(classer(references, hypotheses), hypotheses);
+  const charge = chargeUtileEtf(references, classer(references, hypotheses), hypotheses);
   assert.deepEqual(Object.keys(charge).sort(), [...CLES_CHARGE_UTILE_ETF].sort());
   const clesCandidat = ['symbole', 'nom', 'emetteur', 'fraisCourantsPb', 'prixPartCentimes', 'encoursMillionsEuros', 'capitalisant', 'sansCourtageAchat', 'achetableChaqueMois', 'coutPremiereAnneeCentimes', 'coutHorizonCentimes'];
   for (const c of charge.candidats) assert.deepEqual(Object.keys(c).sort(), [...clesCandidat].sort());
   const texte = JSON.stringify(charge);
   assert.doesNotMatch(texte, /source|releve_le|isin|immobilier|libelle/i);
   assert.equal(charge.recommande, 'A');
-  // Même charge, même empreinte ; une hypothèse change, autre empreinte.
-  assert.equal(empreinteEtf(charge), empreinteEtf(JSON.parse(texte)));
-  assert.notEqual(empreinteEtf(charge), empreinteEtf(chargeUtileEtf(classer(references, { ...hypotheses, horizonAnnees: 11 }), { ...hypotheses, horizonAnnees: 11 })));
+  assert.equal(charge.minimumOrdreCentimes, 10000);
 });
 
 test('le texte de repli dit le recommandé, ses coûts, les autres, et finit par la mention ; les messages pour Claude portent la consigne', () => {
   const references = { courtier: COURTIER, candidats: [candidat('A', 'Gratuit'), candidat('B', 'Payant', { capitalisant: false }), candidat('C', 'Payant', { prix: 70000 })] };
   const hypotheses = { versementCentimes: 50000, horizonAnnees: 10, rendementPb: 500 };
-  const charge = chargeUtileEtf(classer(references, hypotheses), hypotheses);
-  const t = texteDeRepliEtf(charge).replace(/[\u00a0\u202f]/g, ' ');
+  const charge = chargeUtileEtf(references, classer(references, hypotheses), hypotheses);
+  const t = normaliser(texteDeRepliEtf(charge));
   assert.match(t, /500 € par mois pendant 10 ans/);
   assert.match(t, /ETF A \(A\)/);
   assert.match(t, /aucun courtage à l'achat/);
@@ -103,6 +106,12 @@ test('le texte de repli dit le recommandé, ses coûts, les autres, et finit par
   const m = messagesPourClaudeEtf(charge);
   assert.match(m.system, /ne décides rien/);
   assert.match(m.system, /ne contredis jamais le candidat recommandé/);
+  assert.match(m.user, /on ne vend jamais une ligne existante/);
   assert.ok(m.user.includes(JSON.stringify(charge)));
-  assert.match(texteDeRepliEtf({ ...charge, recommande: null }), /Aucun candidat n'est achetable/);
+  assert.match(texteDeRepliEtf({ ...charge, recommande: null }), /Aucun candidat n'est achetable chaque mois avec ce versement/);
+  // Sous le minimum d'ordre, la raison dite est la vraie : pas le prix de la part.
+  const petit = { versementCentimes: 5000, horizonAnnees: 10, rendementPb: 500 };
+  const tPetit = normaliser(texteDeRepliEtf(chargeUtileEtf(references, classer(references, petit), petit)));
+  assert.match(tPetit, /A n'est pas achetable chaque mois : le versement est sous le minimum d'ordre du courtier \(100,00 €\)/);
+  assert.match(tPetit, /C n'est pas achetable chaque mois : une part vaut 700,00 €/, 'la part trop chère garde sa raison');
 });

@@ -10,7 +10,7 @@ import { HOTE } from '../serveur/config.mjs';
 import { appliquerMigrations } from '../lib/schema.mjs';
 import { lireEtat, lireFlux } from '../lib/referentiel.mjs';
 import { lireObjectif } from '../lib/objectif.mjs';
-import { baseJetable } from './aide.mjs';
+import { baseJetable, normaliser } from './aide.mjs';
 
 let jetable;
 let serveur;
@@ -57,7 +57,6 @@ function requete({ methode = 'GET', chemin = '/', entetes = {}, corps } = {}) {
   });
 }
 const post = (chemin, champs) => requete({ methode: 'POST', chemin, entetes: { Origin: `http://${HOTE}:${port}` }, corps: new URLSearchParams(champs).toString() });
-const normaliser = (s) => s.replace(/[  ]/g, ' ');
 
 test('les polices sont servies depuis public/fonts avec le bon type, et la CSP les autorise', async () => {
   const r = await requete({ chemin: '/public/fonts/inter-tight-latin.woff2' });
