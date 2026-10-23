@@ -1,0 +1,10 @@
+# Une construction lancée depuis le dépôt de travail ne copie rien de local.
+.git
+.githooks
+.mcp.json
+*.db
+*.db-*
+*.sqlite*
+.env*
+node_modules
+tests

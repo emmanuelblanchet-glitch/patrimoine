@@ -41,9 +41,14 @@ export function options(valeurs, libelles, choisie) {
 const NAV = [['/', 'Ma poche'], ['/allocation', 'Allocation'], ['/lignes', 'Lignes'], ['/versement', 'Mouvement'], ['/choisir/etf', 'Choisir mon ETF'], ['/reglages', 'Réglages']];
 const NAV_DETAILS = [['/bilan', 'Bilan complet'], ['/enveloppes', 'Enveloppes'], ['/actifs', 'Actifs'], ['/passifs', 'Crédits'], ['/valorisations', 'Valorisations']];
 
-export function gabarit(titre, actif, contenu, { details = false } = {}) {
+let deconnexion = false;
+/** En mode public, chaque page porte le bouton de déconnexion. */
+export function configurerGabarit({ deconnexion: d }) { deconnexion = d; }
+
+export function gabarit(titre, actif, contenu, { details = false, nu = false } = {}) {
   const lien = ([href, nom]) => `<a href="${href}"${actif === href ? ' aria-current="page"' : ''}>${nom}</a>`;
-  const nav = details ? [...NAV, ...NAV_DETAILS] : NAV;
+  const nav = nu ? [] : details ? [...NAV, ...NAV_DETAILS] : NAV;
+  const sortie = deconnexion && !nu ? '<form method="post" action="/deconnexion" class="deconnexion"><button class="discret">Déconnexion</button></form>' : '';
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -55,7 +60,7 @@ export function gabarit(titre, actif, contenu, { details = false } = {}) {
 <body>
 <header class="entete">
   <span class="marque">Patrimoine</span>
-  <nav>${nav.map(lien).join('')}</nav>
+  <nav>${nav.map(lien).join('')}${sortie}</nav>
 </header>
 <main>
 ${contenu}
@@ -82,7 +87,8 @@ export const choix = (nom, libelle, contenu, { aide = '' } = {}) => `<label>${li
 export const case_ = (nom, libelle, valeurs) =>
   `<label class="case"><input type="checkbox" name="${nom}" id="${nom}" value="oui"${valeurs?.[nom] === 'oui' ? ' checked' : ''}> ${libelle}</label>`;
 
-export function pageErreur(titre, message) {
-  return gabarit(titre, '', `<h1>${echapper(titre)}</h1><p>${echapper(message)}</p><p><a href="/">Retour à ma poche</a></p>`);
+/** `nu` : avant la porte, ni navigation ni retour — on ne montre rien de l'outil. */
+export function pageErreur(titre, message, { nu = false } = {}) {
+  return gabarit(titre, '', `<h1>${echapper(titre)}</h1><p>${echapper(message)}</p>${nu ? '' : '<p><a href="/">Retour à ma poche</a></p>'}`, { nu });
 }
 

@@ -3,8 +3,10 @@
 //
 //   PATRIMOINE_DB    chemin de la base, HORS du dépôt (obligatoire)
 //   PATRIMOINE_PORT  port local (facultatif, 8710 par défaut)
+//   PATRIMOINE_HOTE_PUBLIC, PATRIMOINE_PHRASE_EMPREINTE, PATRIMOINE_SECRET_SESSION,
+//   PATRIMOINE_UTILISATEUR : ensemble, le mode public du lot 3 (voir deploiement/).
 //
-// L'hôte n'est pas réglable : 127.0.0.1, toujours.
+// L'hôte d'écoute n'est pas réglable : 127.0.0.1, toujours.
 
 import { lireConfiguration, HOTE } from './config.mjs';
 import { demarrerServeur } from './application.mjs';
@@ -21,8 +23,8 @@ const base = ouvrirBase(config.chemin, { modeTest: false });
 const { avant, apres } = appliquerMigrations(base);
 if (avant !== apres) process.stdout.write(`Base amenée de la version ${avant} à la version ${apres}.\n`);
 
-const serveur = await demarrerServeur({ base, port: config.port });
-process.stdout.write(`Patrimoine : http://${HOTE}:${serveur.address().port}/  (base : ${config.chemin})\n`);
+const serveur = await demarrerServeur({ base, port: config.port, public: config.public });
+process.stdout.write(`Patrimoine : http://${HOTE}:${serveur.address().port}/  (base : ${config.chemin}${config.public ? ` ; mode public derrière ${config.public.hote}` : ''})\n`);
 
 const arreter = () => {
   serveur.close(() => {

@@ -71,8 +71,11 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
   `explications.mjs` cache + appel en arrière-plan + repli, un fournisseur
   par sujet (poche, etf) ; `cours.mjs`
   rafraîchissement des cours en arrière-plan (20 h, recul 1 h) ;
-  `demarrer.mjs` point d'entrée. Les deux seuls appels sortants : Anthropic
-  (texte) et Yahoo Finance (cours, GET du symbole).
+  `session.mjs` porte du mode public (empreinte scrypt, cookie signé,
+  essais) ; `pages-session.mjs` ; `demarrer.mjs` point d'entrée. Les deux
+  seuls appels sortants : Anthropic (texte) et Yahoo Finance (cours, GET du
+  symbole). En mode public, le routeur exige le relais HTTPS, l'identité
+  Tailscale du seul utilisateur, puis une session ; 10 recherches/minute.
 - `public/` — seuls fichiers statiques servis (à plat ou dans `fonts/`,
   extensions allowlistées). Polices embarquées : jamais chargées d'un tiers.
 - `docs/design/reglages.json` — le système de design retenu par Emmanuel
@@ -80,7 +83,12 @@ parce qu'il contient des chiffres) ; résumé sans chiffres committé :
 - `docs/references/etf-monde-pea.json` — les faits de « Choisir mon ETF »
   (candidats et courtier), chacun avec source officielle et date de relevé ;
   relevés à la main, jamais par un collecteur ; aucune donnée personnelle.
-- `scripts/valider.mjs` — validateur d'état ; `.githooks/pre-commit` = **le**
+- `scripts/` — `valider.mjs` validateur d'état ; `sauvegarder.mjs` sauvegarde
+  chiffrée et restauration ; `deployer-vps.sh` (commit de main seulement),
+  `transferer-base-vps.sh`, `empreinte-phrase.mjs` ; `deploiement/`
+  Dockerfile, compose (réseau de l'hôte, mode public déclaré), tâche de
+  sauvegarde quotidienne, modèles d'environnement sans valeur, et
+  `LISEZMOI.md`, le pas-à-pas de mise en service. `valider.mjs` — `.githooks/pre-commit` = **le**
   gate bloquant (la protection de branche GitHub n'est pas appliquée sur les
   dépôts privés du plan, constat jarvis 12/08/2026).
 - `tests/` — `node:test`, zéro dépendance ; `tests/aide.mjs` donne une base
@@ -100,6 +108,15 @@ configuration requise : `npm test` ou `node --test`. Aucun test ne lit
 base jetable et un port libre.
 
 ## Lancer l'outil
+
+Sur le VPS (lot 3) : voir `deploiement/LISEZMOI.md`. En bref :
+`scripts/deployer-vps.sh` depuis le Mac sur `main`, environnement dans
+`/home/ubuntu/patrimoine/patrimoine.env`, base dans
+`/home/ubuntu/patrimoine/donnees/`, relais `tailscale serve --https=8006`,
+sauvegarde chaque nuit par le cron d'`ubuntu`
+(`deploiement/sauvegarde-quotidienne.sh`, phrase dans `sauvegarde.env`).
+
+En local, sur le Mac :
 
 ```sh
 mkdir -p ~/Patrimoine

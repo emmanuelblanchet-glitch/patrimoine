@@ -100,6 +100,34 @@ jamais de synonymes. Un terme entre ici à l'instant où il se fige.
 - **Flux** : tout argent entré dans la poche, daté et signé — versements,
   achats, abondements, annulations ; le rendement en vit.
 
+## Sur le VPS, depuis l'iPhone (lot 3)
+
+- **Mode public** : l'outil tourne dans son conteneur sur le VPS, publié
+  seulement sur le réseau privé Tailscale ; il n'existe que si les quatre
+  réglages sont là (hôte public, empreinte de phrase, secret de session,
+  utilisateur). **Mode local** : sur le Mac, sans porte, comme avant.
+- **Relais** : `tailscale serve` en HTTPS ; il dit au serveur « HTTPS » et
+  l'identité du visiteur (en-tête Tailscale). Sans l'un ou l'autre : 403.
+- **Phrase de passe** : jamais stockée ; seule son **empreinte** (scrypt)
+  vit dans l'environnement du conteneur. Cinq essais ratés = dix minutes.
+- **Session** : un cookie signé (HMAC, secret d'environnement), HttpOnly,
+  Secure, SameSite=Strict, trente jours par appareil ; rien côté serveur.
+  **Déconnexion** : le cookie est effacé.
+- **Source** : l'adresse Tailscale du visiteur, transmise par le relais ;
+  c'est par source que se comptent les essais et les recherches.
+- **Sauvegarde chiffrée** : copie cohérente de la base (`VACUUM INTO`),
+  AES-256-GCM, clé dérivée d'une **phrase de sauvegarde** (hors dépôt, dans
+  `sauvegarde.env` lu par la seule tâche de sauvegarde, et dans le
+  gestionnaire de mots de passe) ; une par nuit, trente jours ;
+  **restaurer** refuse d'écraser une base.
+- **Déploiement** : envoi du commit de `main` (fichiers suivis seulement)
+  depuis le Mac, puis reconstruction du conteneur. **Transfert de la base** :
+  la copie unique de la base du Mac vers le VPS, avant le premier
+  déploiement, après quoi l'agent du Mac se retire. (Une **migration** reste
+  un changement de schéma.)
+- **Mode public déclaré** : `PATRIMOINE_MODE=public`, posé par le fichier
+  compose ; sans lui sur le VPS, le serveur refuse de démarrer.
+
 ## Choisir mon ETF (sous-lot 2b)
 
 - **Candidat** : un ETF MSCI World éligible au PEA, décrit par des faits ;

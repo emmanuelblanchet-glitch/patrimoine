@@ -26,9 +26,11 @@ import { aujourdhuiLocal } from '../lib/format.mjs';
 import { creerRafraichisseur } from './cours.mjs';
 import {
   lireFormulaireEnveloppe, lireFormulaireActif, lireFormulairePassif, lireFormulaireValorisation,
-  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation, lireFormulaireHypotheses,
+  lireFormulaireDepart, lireFormulaireVersement, lireFormulaireClasse, lireFormulaireAchat, lireFormulaireAjoutLigne, lireFormulaireAnnulation, lireFormulaireHypotheses, lireFormulaireConnexion,
 } from './formulaires.mjs';
-import { pageErreur } from './gabarit.mjs';
+import { pageErreur, configurerGabarit } from './gabarit.mjs';
+import { pageConnexion } from './pages-session.mjs';
+import { creerSessions, verifierPhrase, lireCookie, enTeteCookie, enTeteCookieEffacement } from './session.mjs';
 import { pageAccueil, pageDepart, pageAllocation, pageLignes, pageVersement, pageReglages } from './pages-poche.mjs';
 import { pageBilan, pageEnveloppes, pageActifs, pagePassifs, pageValorisations } from './pages-details.mjs';
 import { pageChoisirEtf } from './pages-choix.mjs';
@@ -47,6 +49,8 @@ const TYPES_STATIQUES = {
   '.woff2': 'font/woff2',
 };
 const LIMITE_CORPS_OCTETS = 64 * 1024;
+// Chaque recherche de ligne part vers Yahoo : au plus RECHERCHES_PAR_MINUTE par source.
+const RECHERCHES_PAR_MINUTE = 10;
 
 // Referrer-Policy : surtout pas « no-referrer ». Avec elle, la norme Fetch
 // fait envoyer « Origin: null » sur un POST de formulaire, et la garde
@@ -180,18 +184,115 @@ async function servirStatique(res, nom) {
 }
 
 /**
+ * Fenêtre glissante d'une minute par source : rend 0 si la requête passe,
+ * sinon les millisecondes à attendre.
+ */
+function creerLimiteur({ parMinute, maintenant }) {
+  const historique = new Map(); // source → horodatages de la dernière minute
+  return (source) => {
+    const t = maintenant();
+    for (const [s, h] of historique) if (t - h.at(-1) >= 60_000) historique.delete(s);
+    const recents = historique.get(source) ?? [];
+    if (recents.length >= parMinute) return 60_000 - (t - recents[0]);
+    recents.push(t);
+    historique.set(source, recents);
+    return 0;
+  };
+}
+
+/** La source d'une requête : l'adresse que le relais transmet, sinon la prise. */
+const sourceDe = (req) => (req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || req.socket.remoteAddress;
+/** Un en-tête venu de l'extérieur, bon pour un journal : borné, sans caractère de contrôle. */
+const sur = (t) => String(t ?? '').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 80);
+const secondes = (ms) => String(Math.ceil(ms / 1000));
+const PAGE_NUE = { nu: true };
+
+/**
  * @param {{ base, hotesAutorises: () => string[], aujourdhui?: () => string }} options
  */
-function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY }) {
+function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude = () => process.env.ANTHROPIC_API_KEY, public: modePublic = null, maintenant = () => Date.now(), journal = console.error }) {
   const ctxDe = () => contexte(base, aujourdhui(), cleClaude, rafraichisseur);
+  const sessions = modePublic ? creerSessions({ secret: modePublic.secret, empreinte: modePublic.empreinte, maintenant }) : null;
+  const attenteRecherche = creerLimiteur({ parMinute: RECHERCHES_PAR_MINUTE, maintenant });
+  const schema = modePublic ? 'https' : 'http';
+  configurerGabarit({ deconnexion: Boolean(modePublic) });
+
+  /** Le relais doit dire HTTPS et porter l'identité Tailscale du seul utilisateur. Rend la page d'erreur, ou null. */
+  function refusRelais(req) {
+    if (req.headers['x-forwarded-proto'] !== 'https') return pageErreur('Relais sans HTTPS', 'Le mode public exige un relais HTTPS (tailscale serve --https).', PAGE_NUE);
+    if (req.headers['tailscale-user-login'] !== modePublic.utilisateur) {
+      journal(`[patrimoine] identité refusée depuis ${sur(sourceDe(req))}`);
+      return pageErreur('Accès refusé', 'Cet outil n\'est pas le tien.', PAGE_NUE);
+    }
+    return null;
+  }
+
+  /** POST /connexion : la phrase, les essais par source et le plafond global, puis le cookie. */
+  async function connexion(req, res, source) {
+    const attente = sessions.attente(source);
+    if (attente > 0) {
+      await lireCorps(req);
+      return envoyer(res, 429, pageConnexion({ attenteMinutes: Math.ceil(attente / 60_000) }), { 'Retry-After': secondes(attente) });
+    }
+    const { phrase } = lireFormulaireConnexion(Object.fromEntries(new URLSearchParams(await lireCorps(req))));
+    if (!verifierPhrase(phrase, modePublic.empreinte)) {
+      const bloque = sessions.echec(source);
+      journal(`[patrimoine] phrase refusée depuis ${sur(source)}${bloque ? ' ; essais suspendus dix minutes' : ''}`);
+      return envoyer(res, bloque ? 429 : 401, pageConnexion({ motifs: ['phrase refusée'], attenteMinutes: Math.ceil(bloque / 60_000) }), bloque ? { 'Retry-After': secondes(bloque) } : {});
+    }
+    sessions.reussite(source);
+    res.writeHead(303, { Location: '/', 'Set-Cookie': enTeteCookie(sessions.emettre()), ...ENTETES_SECURITE });
+    return res.end();
+  }
+
+  /**
+   * La porte du mode public, avant toute route : relais et identité, puis une
+   * session valide — sauf pour la page de connexion et les statiques. Rend
+   * true si la réponse est déjà envoyée.
+   */
+  async function porte(req, res, chemin, hote) {
+    const refus = refusRelais(req);
+    if (refus) { envoyer(res, 403, refus); return true; }
+    if (chemin.startsWith('/public/')) return false;
+    // Connexion et déconnexion changent un état : comme toute écriture, elles
+    // ne viennent que d'une page de l'outil (sinon une page tierce ouverte
+    // dans le navigateur pourrait épuiser les essais et bloquer la porte).
+    const ecriture = req.method === 'POST' && (chemin === '/connexion' || chemin === '/deconnexion');
+    if (ecriture && req.headers.origin !== `https://${hote}`) {
+      await lireCorps(req);
+      envoyer(res, 403, pageErreur('Écriture refusée', 'Une saisie ne peut venir que d\'une page de ce serveur.', PAGE_NUE));
+      return true;
+    }
+    const source = sourceDe(req);
+    if (chemin === '/connexion') {
+      if (req.method === 'POST') await connexion(req, res, source);
+      else if (req.method === 'GET' || req.method === 'HEAD') envoyer(res, 200, pageConnexion({ attenteMinutes: Math.ceil(sessions.attente(source) / 60_000) }));
+      else envoyer(res, 405, pageErreur('Méthode refusée', 'Seules la lecture et la saisie par formulaire sont permises.', PAGE_NUE), { Allow: 'GET, HEAD, POST' });
+      return true;
+    }
+    const sansSession = !sessions.valider(lireCookie(req.headers.cookie));
+    if (sansSession || chemin === '/deconnexion') {
+      // Le corps est lu avant de répondre : sinon le client ne recevrait pas la redirection.
+      if (req.method === 'POST') await lireCorps(req);
+      const sortie = !sansSession && req.method === 'POST' ? { 'Set-Cookie': enTeteCookieEffacement() } : {};
+      res.writeHead(303, { Location: '/connexion', ...sortie, ...ENTETES_SECURITE });
+      res.end();
+      return true;
+    }
+    return false;
+  }
+
   return async (req, res) => {
     try {
       const hote = req.headers.host ?? '';
       if (!hotesAutorises().includes(hote)) {
-        return envoyer(res, 403, pageErreur('Accès refusé', 'Cette adresse n\'est pas celle du serveur local.'));
+        // Au premier déploiement, c'est ici qu'on voit si le relais garde l'en-tête Host.
+        if (modePublic) journal(`[patrimoine] hôte refusé : ${sur(hote)}`);
+        return envoyer(res, 403, pageErreur('Accès refusé', 'Cette adresse n\'est pas celle du serveur.', PAGE_NUE));
       }
-      const url = new URL(req.url, `http://${hote}`);
+      const url = new URL(req.url, `${schema}://${hote}`);
       const chemin = url.pathname;
+      if (modePublic && (await porte(req, res, chemin, hote))) return;
 
       if (req.method === 'GET' || req.method === 'HEAD') {
         if (chemin.startsWith('/public/')) return await servirStatique(res, chemin.slice('/public/'.length));
@@ -202,6 +303,8 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
           return envoyer(res, 200, pageAccueil({ poche: ctx.poche, explication, aujourdhui: ctx.aujourdhui, etatCours: ctx.etatCours }));
         }
         if (chemin === '/lignes' && url.searchParams.has('q')) {
+          const attente = attenteRecherche(sourceDe(req));
+          if (attente > 0) return envoyer(res, 429, pageErreur('Trop de recherches', `Au plus ${RECHERCHES_PAR_MINUTE} recherches par minute : chacune part vers la source de cours.`), { 'Retry-After': secondes(attente) });
           const ctx = ctxDe();
           const q = url.searchParams.get('q');
           const r = await rafraichisseur.chercher(q);
@@ -247,7 +350,7 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
       }
 
       if (req.method === 'POST') {
-        if (req.headers.origin !== `http://${hote}`) {
+        if (req.headers.origin !== `${schema}://${hote}`) {
           return envoyer(res, 403, pageErreur('Écriture refusée', 'Une saisie ne peut venir que d\'une page de ce serveur.'));
         }
         if (chemin === '/cours/actualiser') {
@@ -289,17 +392,19 @@ function creerGestionnaire({ base, hotesAutorises, aujourdhui = aujourdhuiLocal,
 }
 
 /** Démarre le serveur, uniquement sur 127.0.0.1. `port: 0` choisit un port libre (tests). */
-export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours, references = chargerReferences() }) {
+export function demarrerServeur({ base, port, aujourdhui, cleClaude = () => process.env.ANTHROPIC_API_KEY, rediger, fetchCours, references = chargerReferences(), public: modePublic = null, maintenant, journal }) {
   return new Promise((resoudre, rejeter) => {
     const serveur = createServer();
+    // En mode public, seul l'hôte déclaré est admis : le relais seul y mène.
     const hotesAutorises = () => {
+      if (modePublic) return [modePublic.hote];
       const p = serveur.address().port;
       return [`${HOTE}:${p}`, `localhost:${p}`];
     };
     const fournisseur = creerFournisseur({ base, cle: cleClaude, rediger });
     const fournisseurEtf = creerFournisseur({ base, cle: cleClaude, rediger, sujet: 'etf', repli: texteDeRepliEtf, messages: messagesPourClaudeEtf });
     const rafraichisseur = creerRafraichisseur({ base, ...(fetchCours ? { fetchImpl: fetchCours } : {}) });
-    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude }));
+    serveur.on('request', creerGestionnaire({ base, hotesAutorises, aujourdhui, fournisseur, fournisseurEtf, references, rafraichisseur, cleClaude, public: modePublic, maintenant, journal }));
     serveur.once('error', rejeter);
     serveur.listen(port, HOTE, () => resoudre(serveur));
   });
