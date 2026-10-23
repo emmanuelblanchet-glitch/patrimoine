@@ -41,9 +41,14 @@ export function options(valeurs, libelles, choisie) {
 const NAV = [['/', 'Ma poche'], ['/allocation', 'Allocation'], ['/lignes', 'Lignes'], ['/versement', 'Mouvement'], ['/choisir/etf', 'Choisir mon ETF'], ['/reglages', 'Réglages']];
 const NAV_DETAILS = [['/bilan', 'Bilan complet'], ['/enveloppes', 'Enveloppes'], ['/actifs', 'Actifs'], ['/passifs', 'Crédits'], ['/valorisations', 'Valorisations']];
 
-export function gabarit(titre, actif, contenu, { details = false } = {}) {
+let deconnexion = false;
+/** En mode public, chaque page porte le bouton de déconnexion. */
+export function configurerGabarit({ deconnexion: d }) { deconnexion = d; }
+
+export function gabarit(titre, actif, contenu, { details = false, nu = false } = {}) {
   const lien = ([href, nom]) => `<a href="${href}"${actif === href ? ' aria-current="page"' : ''}>${nom}</a>`;
-  const nav = details ? [...NAV, ...NAV_DETAILS] : NAV;
+  const nav = nu ? [] : details ? [...NAV, ...NAV_DETAILS] : NAV;
+  const sortie = deconnexion && !nu ? '<form method="post" action="/deconnexion" class="deconnexion"><button class="discret">Déconnexion</button></form>' : '';
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -55,7 +60,7 @@ export function gabarit(titre, actif, contenu, { details = false } = {}) {
 <body>
 <header class="entete">
   <span class="marque">Patrimoine</span>
-  <nav>${nav.map(lien).join('')}</nav>
+  <nav>${nav.map(lien).join('')}${sortie}</nav>
 </header>
 <main>
 ${contenu}

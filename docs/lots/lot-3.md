@@ -75,6 +75,23 @@ est sauvegardée chaque nuit, chiffrée ; le Mac peut être éteint.
   main) reste la ceinture. L'identité Tailscale garde tout de même sa
   valeur : elle ferme la porte à tout autre compte invité un jour.
 
+## Précisé au développement
+
+- Les barres d'allocation et la jauge financier/immobilier sont des
+  éléments `<progress>` : la CSP refuse les largeurs en attribut `style`
+  (retouche parquée du 2b, faite ici) ; plus aucun attribut `style` dans
+  les pages de la poche.
+- Le compteur d'essais et la limite de recherche se comptent **par source**
+  (adresse transmise par le relais) ; une autre source n'est pas touchée.
+- Le mode public refuse toute requête dont l'en-tête Host n'est pas l'hôte
+  déclaré, même locale : seul le relais y mène.
+- La sauvegarde dérive sa clé par scrypt (N = 2¹⁵, 32 Mo) et refuse de
+  restaurer par-dessus une base existante ; la base d'origine reste ouverte
+  et intacte pendant la copie (`VACUUM INTO` sur une connexion en lecture).
+- `scripts/deployer-vps.sh` envoie par `tar` sur `ssh` (pas de dépendance
+  à rsync, dont la version du Mac est atypique) et **refuse** un dépôt qui
+  suivrait une base, un `.env` ou le câblage MCP.
+
 ## Seams testés (bloquants, jeux synthétiques)
 
 | Seam | Comportement garanti |

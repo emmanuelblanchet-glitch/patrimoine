@@ -1,0 +1,19 @@
+# Conteneur dédié à l'activité (D1). Publié sur 127.0.0.1:8006 de l'hôte,
+# relayé par `tailscale serve --https=8006` : rien n'est exposé sur Internet.
+services:
+  patrimoine:
+    build:
+      context: ..
+      dockerfile: deploiement/Dockerfile
+    container_name: patrimoine
+    restart: unless-stopped
+    env_file: /home/ubuntu/patrimoine/patrimoine.env
+    environment:
+      PATRIMOINE_DB: /donnees/patrimoine.db
+      PATRIMOINE_PORT: "8710"
+    ports:
+      - "127.0.0.1:8006:8710"
+    volumes:
+      - /home/ubuntu/patrimoine/donnees:/donnees
+      - /home/ubuntu/backups/patrimoine:/sauvegardes
+    mem_limit: 256m

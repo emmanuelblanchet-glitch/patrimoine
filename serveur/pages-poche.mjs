@@ -56,7 +56,7 @@ export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) 
   const alloc = ecarts.map((e) => `<div class="ligne-alloc">
     <span class="nom">${echapper(LIBELLES_CLASSE[e.classe])}<small>${e.dansLaBande ? 'dans la bande' : e.ecartPb > 0 ? `${pct(e.ecartPb)} sous la cible` : `${pct(-e.ecartPb)} au-dessus de la cible`}</small></span>
     <span class="valeurs">${pct(e.actuelPb)} <small>· cible ${pct(e.ciblePb)}</small></span>
-    <div class="barre"><div class="actuel" style="width:${Math.min(100, e.actuelPb / 100)}%"></div><div class="cible" style="left:${e.ciblePb / 100}%"></div></div>
+    <progress class="barre" value="${Math.min(10000, e.actuelPb)}" max="10000" aria-label="${pct(e.actuelPb)}, cible ${pct(e.ciblePb)}"></progress>
   </div>`).join('');
 
   const etatCote = (l) => {
@@ -113,13 +113,13 @@ export function pageAccueil({ poche, explication, aujourdhui, etatCours = {} }) 
     <thead><tr><th>Ligne</th><th class="num">Valeur</th><th class="num">Depuis l'achat</th><th>Valeur du</th></tr></thead>
     <tbody>${lignesHtml}</tbody>
   </table></div>
-  ${cotees.length ? `<form method="post" action="/cours/actualiser" class="date" style="margin-top:var(--esp-2)"><button>Actualiser les cours</button><small>Les cours se mettent à jour seuls quand ils ont plus de vingt heures ; ce bouton force la mise à jour.</small></form>` : ''}
+  ${cotees.length ? `<form method="post" action="/cours/actualiser" class="date espace-dessus"><button>Actualiser les cours</button><small>Les cours se mettent à jour seuls quand ils ont plus de vingt heures ; ce bouton force la mise à jour.</small></form>` : ''}
 </section>
 
 <section class="section">
   <h2>Financier contre immobilier</h2>
   <div class="carte part">
-    <div class="jauge"><div class="fin" style="width:${partFinancierePb / 100}%"></div><div class="immo" style="width:${100 - partFinancierePb / 100}%"></div></div>
+    <progress class="jauge" value="${partFinancierePb}" max="10000" aria-label="poche financière ${pct(partFinancierePb)}"></progress>
     <div class="legende"><span>Poche financière ${pct(partFinancierePb)}</span><span>Immobilier net ${pct(10000 - partFinancierePb)} <small>(${eurosRonds(immobilierNetCentimes)}, ${echapper(objectif.immobilierSource)}, ${echapper(objectif.immobilierDate)})</small></span></div>
     ${dernier ? `<p class="source">Trajectoire : à ${eurosRonds(objectif.epargneMensuelleCentimes)} par mois et ${pct(objectif.rendementEstimePb)} par an, la poche vaudrait ${eurosRonds(dernier.pocheCentimes)} en ${anneeCible}, soit ${pct(dernier.partFinancierePb)} du patrimoine net ${tag('estim', 'estimation')}</p>` : ''}
   </div>
@@ -149,7 +149,7 @@ export function pageDepart({ objectif, enveloppes }, { valeurs = {}, motifs = []
   return gabarit('Point de départ', '/depart', `
 <h1>${objectif ? 'Mon point de départ' : 'Six questions pour démarrer'}</h1>
 <p class="sous-titre">Réponds à la louche, en euros. Tu pourras revenir ici quand tu veux. ${objectif ? '' : 'À la fin, l\'outil crée tes premières lignes.'}</p>
-${enregistre ? `<div class="carte" style="margin-bottom:var(--esp-3)">${tag('fait', 'enregistré')} Ton point de départ est enregistré. Lis ce qui suit, puis <a href="/">va voir ta poche</a>.</div>` : ''}
+${enregistre ? `<div class="carte espace-dessous">${tag('fait', 'enregistré')} Ton point de départ est enregistré. Lis ce qui suit, puis <a href="/">va voir ta poche</a>.</div>` : ''}
 ${blocErreurs(motifs)}
 ${blocAvertissements('À savoir', avertissements)}
 <form method="post" action="/depart" class="saisie questions">
@@ -237,7 +237,7 @@ export function pageLignes({ etat, poche }, { valeurs = {}, motifs = [], recherc
   return gabarit('Lignes', '/lignes', `
 <h1>Mes lignes</h1>
 <p class="sous-titre">Chaque ligne de la poche a une classe : actions monde, sans risque, ou mixte. C'est elle qui décide où va ton versement.${cinqAns ? ` PEA : avantages fiscaux acquis le ${dateFr(cinqAns)}.` : ''}</p>
-<section class="section" style="margin-top:0">
+<section class="section sans-espace-dessus">
 <h2>Ajouter une ligne cotée</h2>
 <p class="aide">Tape le code ISIN (douze caractères, sur la fiche du fonds) ou le symbole de cotation ; l'outil retrouve le nom et la place, tu choisis l'enveloppe et la classe. Lequel ? <a href="/choisir/etf">Choisir mon ETF</a> compare les ETF monde éligibles au PEA pour ton rythme.</p>
 ${enveloppesCotees.length ? `<form method="get" action="/lignes" class="date">${champ('q', 'Code ISIN ou symbole', { q: recherche?.q ?? '' }, { requis: true })}<button>Chercher</button></form>${resultats}` : '<p class="vide">Il faut d\'abord une enveloppe qui accueille des titres (PEA, compte-titres, assurance-vie) : coche-la au <a href="/depart">point de départ</a>.</p>'}
@@ -281,7 +281,7 @@ export function pageVersement({ poche, aujourdhui, achats = [] }, { valeurs = {}
   return gabarit('Mouvement', '/versement', `
 <h1>J'ai acheté, j'ai versé</h1>
 <p class="sous-titre">Une phrase, trois champs. Un achat de parts suit ensuite son cours tout seul ; un versement sur une ligne sans cours porte sa nouvelle valeur si tu la connais.</p>
-<section class="section" style="margin-top:0">
+<section class="section sans-espace-dessus">
 <h2>J'ai acheté des parts</h2>
 ${erreurs('achat')}
 ${cotees.length ? `<form method="post" action="/achat" class="saisie">

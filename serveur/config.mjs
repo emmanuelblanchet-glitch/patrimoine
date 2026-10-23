@@ -12,6 +12,7 @@
 import { existsSync, lstatSync, realpathSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { empreinteValide, SECRET_MIN } from './session.mjs';
 
 export const HOTE = '127.0.0.1';
 const PORT_PAR_DEFAUT = 8710;
@@ -60,9 +61,28 @@ export function cheminBaseAutorise(chemin, racineDepot = RACINE_DEPOT) {
 }
 
 /**
- * Lit la configuration depuis l'environnement. Seuls le chemin de la base et
- * le port sont réglables ; l'hôte ne l'est pas.
- * @returns {{ ok: true, chemin: string, port: number } | { ok: false, motif: string }}
+ * Le mode public (lot 3) : derrière le relais Tailscale, l'outil exige une
+ * phrase de passe, un secret de session et l'identité de son seul
+ * utilisateur. Un seul des quatre réglages présent sans les autres = refus.
+ * @returns {{ ok: true, public: null | { hote, empreinte, secret, utilisateur } } | { ok: false, motif }}
+ */
+export function lireModePublic(env) {
+  const hote = env.PATRIMOINE_HOTE_PUBLIC?.trim();
+  const empreinte = env.PATRIMOINE_PHRASE_EMPREINTE?.trim();
+  const secret = env.PATRIMOINE_SECRET_SESSION?.trim();
+  const utilisateur = env.PATRIMOINE_UTILISATEUR?.trim();
+  if (!hote && !empreinte && !secret && !utilisateur) return { ok: true, public: null };
+  if (!hote || !/^[a-z0-9.-]+(:\d{1,5})?$/i.test(hote)) return { ok: false, motif: 'PATRIMOINE_HOTE_PUBLIC absent ou illisible (ex. vps-memoire.tailde497c.ts.net:8006)' };
+  if (!empreinteValide(empreinte)) return { ok: false, motif: 'PATRIMOINE_PHRASE_EMPREINTE absente ou mal formée : node scripts/empreinte-phrase.mjs la fabrique' };
+  if (!secret || secret.length < SECRET_MIN) return { ok: false, motif: `PATRIMOINE_SECRET_SESSION absent ou trop court (${SECRET_MIN} caractères au moins)` };
+  if (!utilisateur) return { ok: false, motif: 'PATRIMOINE_UTILISATEUR absent : le login Tailscale du seul utilisateur' };
+  return { ok: true, public: { hote, empreinte, secret, utilisateur } };
+}
+
+/**
+ * Lit la configuration depuis l'environnement. Seuls le chemin de la base,
+ * le port et le mode public sont réglables ; l'hôte d'écoute ne l'est pas.
+ * @returns {{ ok: true, chemin: string, port: number, public: object | null } | { ok: false, motif: string }}
  */
 export function lireConfiguration(env, racineDepot = RACINE_DEPOT) {
   const chemin = env.PATRIMOINE_DB;
@@ -76,5 +96,7 @@ export function lireConfiguration(env, racineDepot = RACINE_DEPOT) {
       return { ok: false, motif: `PATRIMOINE_PORT invalide : « ${env.PATRIMOINE_PORT} » (entre 1024 et 65535)` };
     }
   }
-  return { ok: true, chemin: resolve(chemin), port };
+  const mode = lireModePublic(env);
+  if (!mode.ok) return mode;
+  return { ok: true, chemin: resolve(chemin), port, public: mode.public };
 }
