@@ -88,6 +88,7 @@
         <li>il ajoute son ETF par son code ISIN ; l'outil retrouve le nom et le <strong>symbole de cotation</strong></li>
         <li>« j'ai acheté N parts à P € » (ligne cotée), ou « j'ai versé X sur telle ligne » (ligne sans cours) : transactions <strong>immuables</strong> ; un achat erroné s'<strong>annule</strong> par contre-écriture, une seule fois</li>
         <li>les cours arrivent seuls ; chaque ligne montre sa valeur au cours, sa plus-value, et la poche ce que l'épargne rapporte</li>
+        <li>avant d'acheter, <strong>Choisir mon ETF</strong> compare les ETF monde éligibles au PEA pour son rythme : coût de la première année et sur l'horizon chez son courtier, un recommandé, chaque fait daté et sourcé</li>
       </ul>
     </div>
   </div>
@@ -144,10 +145,19 @@
       </ul>
     </div>
     <div class="brique">
+      <h3>Références datées</h3>
+      <span class="ou"><code>docs/references/</code>, <code>lib/references.mjs</code></span>
+      <ul>
+        <li>les faits du choix d'ETF (frais, prix de part, encours, grille du courtier) : chacun avec sa source officielle et sa date de relevé</li>
+        <li>relevés à la main, jamais par un collecteur ; un fait sans source ou hors catalogue empêche le chargement</li>
+        <li>au-delà de six mois, la page le signale</li>
+      </ul>
+    </div>
+    <div class="brique">
       <h3>Claude, en mots seulement</h3>
       <span class="ou"><code>serveur/claude.mjs</code>, API Messages</span>
       <ul>
-        <li>reçoit la cible, les poids, le versement et sa répartition, l'horizon, le plancher : rien d'autre</li>
+        <li>reçoit la cible, les poids, le versement et sa répartition, l'horizon, le plancher ; pour le choix d'ETF, les candidats et leurs coûts : rien d'autre</li>
         <li>appel en arrière-plan ; texte mis en cache par empreinte de ses entrées</li>
         <li>sans clé, sans réseau ou en erreur : texte de repli, la page ne l'attend jamais</li>
       </ul>
@@ -164,7 +174,6 @@
       <h3>Pas encore</h3>
       <span class="ou">lots suivants</span>
       <ul>
-        <li>aides au choix du courtier et de l'ETF, chiffres datés et sourcés (sous-lot 2b)</li>
         <li>accès iPhone, mot de passe, VPS, sauvegarde chiffrée</li>
         <li>orientations d'actualité ; échéanciers et fiscalité de l'immobilier, plus tard</li>
       </ul>
@@ -207,7 +216,7 @@
       <h3>Claude met en mots, il ne décide rien</h3>
       <ul>
         <li>les chiffres viennent des règles codées et testées ; le modèle rédige, marqué « aide à la décision »</li>
-        <li>la charge utile est une liste fermée de clés, vérifiée par un test : ni libellés, ni immobilier détaillé, ni identité</li>
+        <li>la charge utile est une liste fermée de clés, vérifiée par un test : ni libellés, ni immobilier détaillé, ni identité ; pour le choix d'ETF, Claude ne rédige que pour les hypothèses du point de départ</li>
         <li>appel en lecture seule, sans outil ; clé dans l'environnement du serveur, jamais dans le dépôt</li>
       </ul>
     </div>
@@ -218,6 +227,7 @@
     <tr><th>État</th><th>Conséquence</th></tr>
     <tr><td>Pas d'authentification</td><td>Le serveur n'est joignable que depuis le Mac ; toute personne devant le Mac peut lire et écrire. Mot de passe et réseau privé au lot 3.</td></tr>
     <tr><td>Les cours viennent d'une source non officielle</td><td>Yahoo Finance peut cesser de répondre sans préavis ; l'outil garde le dernier cours avec sa date et le dit. Yahoo apprend quel ETF est suivi, pas combien. Seules les lignes cotées en euros sont suivies.</td></tr>
+    <tr><td>Les faits du choix d'ETF vieillissent</td><td>Frais, encours, grille du courtier et partenariats changent ; rien ne les relève tout seul. La page signale tout fait de plus de six mois, et le coût affiché est une estimation.</td></tr>
     <tr><td>Les lignes sans cours sont saisies à la main</td><td>Livret, fonds euros, PEE : la valeur vieillit entre deux saisies ; l'âge affiché le rappelle.</td></tr>
     <tr><td>Le rendement a besoin de recul</td><td>Affiché à partir de 30 jours, estimation en deçà d'un an ; calculé sur les seules lignes alimentées par un flux suivi, leur valeur de départ comptée comme un flux à sa date.</td></tr>
     <tr><td>Une cible unique, 60 / 40</td><td>La cible est celle du point de départ ; elle ne se modifie pas encore à l'écran.</td></tr>
